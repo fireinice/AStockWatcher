@@ -1,0 +1,23 @@
+CommonConfig:
+  #交易费用 %
+  charges_ratio: 0.4
+  #印花税 %
+  tax_ratio: 0.1
+  #通讯费 Int
+  comm_charge: 1
+
+DataSouce:
+  url: http://hq.sinajs.cn/list=
+
+Stocks:
+  - code: "002238"
+    market: sz
+    buy_price: 21.14
+    buy_quantity: 100
+    
+  - code: "000033"
+    market: sz
+    buy_price: 7.35
+    buy_quantity: 400
+    
+      
