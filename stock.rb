@@ -1,7 +1,7 @@
+$KCODE = 'u'
 require 'mechanize'
 require "iconv"
 require "jcode"
-$KCODE = 'u'
 
 class Stock
   def initialize(code, market, price, quantity)
@@ -60,6 +60,10 @@ end
 
 class WebInfo
   @@decoder = Iconv.new("UTF-8//IGNORE", "GBK//IGNORE")
+  @@inter_name = ["股票名", "昨开", "今收", "报价", "最高价", "最低价", "竞买", "竞卖", "成交量",
+                  "成交金额", "买一量", "买一", "买二量", "买二", "买三量", "买三", "买四量", "买四",
+                  "买五量", "买五", "卖一量", "卖一", "卖二量", "卖二", "卖三量", "卖三",
+                  "卖四量", "卖四", "卖五量", "卖五", "日期", "时间"]
   # http://hq.sinajs.cn/list=sz002238,sz000033
   def initialize(base_url)
     @base_url = base_url
@@ -84,7 +88,6 @@ class WebInfo
   def getStatus(stockList)
     remote_data = self.fetchData(stockList)
     infos = self.parseData(remote_data)
-    p infos
   end
 
   def parseData(rdata)
@@ -99,6 +102,19 @@ class WebInfo
     return info_hash
   end
 
+  def dumpInfo(infos)
+    values = infos.values
+    values.each do |value|
+      print "===================\n"
+      if value.length != @@inter_name.length
+        raise ArgumentError, "length error"
+      end
+      0.upto(value.length - 1) do |i|
+        print "#{@@inter_name[i]}:\t"
+        print "#{value[i]}\n"
+      end
+    end
+  end
 end
 
 
@@ -106,7 +122,8 @@ stock_cfg = YAML.load(File.open("stock.yml"))
 my_account = Account.buildFromCfg(stock_cfg)
 current_status = WebInfo.new(stock_cfg["DataSouce"]["url"])
 infos = current_status.getStatus(my_account.all_stock)
-
+p infos
+current_status.dumpInfo(infos)
 
 
 data.split("\n").each do |info|
@@ -124,4 +141,4 @@ buy_charges = buy_price * buy_quantity * charges_ratio * 0.01
 p current_price
 sale_charges = current_price * buy_quantity * (charges_ratio + tax_ratio) * 0.01
 profit = (current_price - buy_price) * buy_quantity - buy_charges - sale_charges - comm_charge
-p (profit * 100).round * 0.01
+# p (profit * 100).round * 0.01
