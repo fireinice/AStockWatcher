@@ -117,28 +117,14 @@ class WebInfo
   end
 end
 
-
 stock_cfg = YAML.load(File.open("stock.yml"))
-my_account = Account.buildFromCfg(stock_cfg)
+my_account = Account.buildFromCfg(stock_cfg) #应该在参数更新后重载
 current_status = WebInfo.new(stock_cfg["DataSouce"]["url"])
 infos = current_status.getStatus(my_account.all_stock)
-p infos
-current_status.dumpInfo(infos)
+# current_status.dumpInfo(infos)
+cal = Caculator.new(my_account, infos)
 
-
-data.split("\n").each do |info|
-  p info
-end
-p data
-data.chomp!.chop!.delete!("\"")
-# value_group = data.scan(/\d+(?:\.\d+)?\b/)
-
-open_price = data.shift.to_f    #开盘价
-close_price = data.shift.to_f   #收盘价
-current_price = data.shift.to_f #报价
-high_price = data.shift.to_f    #最高价
 buy_charges = buy_price * buy_quantity * charges_ratio * 0.01
 p current_price
 sale_charges = current_price * buy_quantity * (charges_ratio + tax_ratio) * 0.01
 profit = (current_price - buy_price) * buy_quantity - buy_charges - sale_charges - comm_charge
-# p (profit * 100).round * 0.01
