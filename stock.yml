@@ -17,7 +17,7 @@ Stocks:
     
   - code: "000033"
     market: sz
-    buy_price: 7.35
+    buy_price: 7.75
     buy_quantity: 400
     
       

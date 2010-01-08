@@ -14,12 +14,13 @@ class Stock
     @buy_quantity = quantity
   end
 
+  attr_reader :code, :market, :buy_price, :buy_quantity
+
   def Stock.initFromHash(info_hash)
     Stock.new(info_hash["code"], info_hash["market"],
               info_hash["buy_price"], info_hash["buy_quantity"])
   end
 
-  attr_reader :code, :market
 end
 
 class Account
@@ -33,7 +34,7 @@ class Account
     @comm_charge = comm_charge
   end
 
-  attr_reader :all_stock
+  attr_reader :all_stock, :charges_ratio, :tax_ratio, :comm_charge
 
   def addStock(stock)
     @all_stock << stock
@@ -84,7 +85,6 @@ class WebInfo
   def getStatus(stockList)
     remote_data = self.fetchData(stockList)
     infos = self.parseData(remote_data)
-    p infos
   end
 
   def parseData(rdata)
@@ -98,6 +98,43 @@ class WebInfo
     end
     return info_hash
   end
+end
+
+class Caculator
+  def initialize(account)
+    @account = account
+  end
+
+  def getChargesForBuy(stock)
+    stock.buy_price * stock.buy_quantity * @account.charges_ratio * 0.01 + @account.comm_charge
+  end
+
+  def getChargesForSale(cur_info, stock)
+    cur_price = cur_info[3].to_f
+    cur_price * stock.buy_quantity * (@account.charges_ratio + @account.tax_ratio) * 0.01 + @account.comm_charge
+  end
+
+  def getGrossProfit(cur_info, stock)
+    cur_price = cur_info[3].to_f
+    (cur_price - stock.buy_price) * stock.buy_quantity
+  end
+
+  def getProfit(cur_info, stock)
+    g_profit = self.getGrossProfit(cur_info, stock) #毛利润
+    buy_charges = self.getChargesForBuy(stock)
+    sale_charges = self.getChargesForSale(cur_info, stock)
+    profit = g_profit - buy_charges - sale_charges
+  end
+
+  def getAllProfit(infos)
+    profits = {}
+    @account.all_stock.each do |stock|
+      info = infos[stock.code]
+      profits[stock.code] = self.getProfit(info, stock)
+    end
+    p profits
+    return profits
+  end
 
 end
 
@@ -106,22 +143,8 @@ stock_cfg = YAML.load(File.open("stock.yml"))
 my_account = Account.buildFromCfg(stock_cfg)
 current_status = WebInfo.new(stock_cfg["DataSouce"]["url"])
 infos = current_status.getStatus(my_account.all_stock)
+cal = Caculator.new(my_account)
+cal.getAllProfit(infos)
 
 
-
-data.split("\n").each do |info|
-  p info
-end
-p data
-data.chomp!.chop!.delete!("\"")
-# value_group = data.scan(/\d+(?:\.\d+)?\b/)
-
-open_price = data.shift.to_f    #开盘价
-close_price = data.shift.to_f   #收盘价
-current_price = data.shift.to_f #报价
-high_price = data.shift.to_f    #最高价
-buy_charges = buy_price * buy_quantity * charges_ratio * 0.01
-p current_price
-sale_charges = current_price * buy_quantity * (charges_ratio + tax_ratio) * 0.01
-profit = (current_price - buy_price) * buy_quantity - buy_charges - sale_charges - comm_charge
-p (profit * 100).round * 0.01
+# p (profit * 100).round * 0.01
