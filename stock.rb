@@ -4,7 +4,7 @@ require "iconv"
 require "jcode"
 require "rubygems"
 require "colorize"
-require "stringio"
+require "optparse"
 
 class Stock
   def initialize(code, market, price, quantity)
@@ -182,12 +182,65 @@ def fmtPrintProfit(stocks, infos, profits)
   end
   printf "\n总盈利:\t".colorize(:blue)
   total_profit = total_profit > 0 ? total_profit.to_s.colorize(:red) : total_profit.to_s.colorize(:green)
-  printf total_profit
-  printf "\n"
+  printf "#{total_profit}\n"
 end
 
+class CFGController
+  def initialize(filename)
+    @cfg = YAML.load(File.open(filename))
+    @filename = filename
+  end
+  attr_reader :cfg
 
-stock_cfg = YAML.load(File.open("stock.yml"))
+  def updateCFG()
+    File.open( @filename, 'w' ) do |out|
+      YAML.dump(@cfg , out )
+    end
+  end
+
+  def addStock(market, code, price, quantity)
+    stock = {}
+    stock["market"] = market
+    stock["code"] = code
+    stock["buy_price"] = price
+    stock["buy_quantity"] = quantity
+    @cfg["Stocks"] << stock
+    # should check stock if invalid here
+    self.updateCFG()
+  end
+
+  def delStock(market, code)
+
+  end
+
+end
+
+cfg_file = CFGController.new("stock.yml")
+options = {}
+OptionParser.new do |opts|
+  opts.banner = "Usage: example.rb [options]"
+  opts.separator ""
+  opts.separator "Specific options:"
+
+  opts.on("-a", "--add-stock [sh|sz_CODE],[BUY_PRICE],[BUY_QUANTITY]", Array, "Add a stock") do |s|
+    v[0] = s[0][0,2]
+    v[1] = s[0][2..-1]
+    v[2] = s[1].to_f
+    v[3] = s[2].to_i
+    cfg_file.addStock(*v)
+    # return 0
+  end
+
+  opts.on("-d", "--delete-stock [sh|sz_CODE]", String, "delete a stock") do |s|
+    v[0] = s[0,2]
+    v[1] = s[2..-1]
+    cfg_file.delStock(*v)
+    # return 0
+  end
+
+end.parse!
+
+stock_cfg = cfg_file.cfg
 my_account = Account.buildFromCfg(stock_cfg) #应该在参数更新后重载
 current_status = WebInfo.new(stock_cfg["DataSouce"]["url"])
 infos = current_status.getStatus(my_account.all_stock)
