@@ -2,6 +2,9 @@ $KCODE = 'u'
 require 'mechanize'
 require "iconv"
 require "jcode"
+require "rubygems"
+require "colorize"
+require "stringio"
 
 class Stock
   def initialize(code, market, price, quantity)
@@ -12,14 +15,25 @@ class Stock
     @market = market
     @buy_price = price
     @buy_quantity = quantity
+    @costing = @buy_price
   end
 
-  attr_reader :code, :market, :buy_price, :buy_quantity
+  attr_reader :code, :market, :buy_price, :buy_quantity, :costing
 
   def Stock.initFromHash(info_hash)
     Stock.new(info_hash["code"], info_hash["market"],
               info_hash["buy_price"], info_hash["buy_quantity"])
   end
+
+  def sum
+    @buy_price * @buy_quantity
+  end
+
+
+  def calcCosting(charges_ratio, tax_ratio, comm_charge)
+    @costing = (self.sum * ( 1 + (charges_ratio * 2 + tax_ratio) * 0.01 )  + comm_charge) / @buy_quantity
+  end
+
 
 end
 
@@ -50,18 +64,18 @@ class Account
     basket = cfg_yml["Stocks"]
     basket.each do |stock_info|
       stock = Stock.initFromHash(stock_info)
+      stock.calcCosting(account.charges_ratio, account.tax_ratio, account.comm_charge)
       account.addStock(stock)
     end
     return account
   end
-
 
 end
 
 
 class WebInfo
   @@decoder = Iconv.new("UTF-8//IGNORE", "GBK//IGNORE")
-  @@inter_name = ["股票名", "昨开", "今收", "报价", "最高价", "最低价", "竞买", "竞卖", "成交量",
+  @@inter_name = ["股票名", "今开", "昨收", "报价", "最高价", "最低价", "竞买", "竞卖", "成交量",
                   "成交金额", "买一量", "买一", "买二量", "买二", "买三量", "买三", "买四量", "买四",
                   "买五量", "买五", "卖一量", "卖一", "卖二量", "卖二", "卖三量", "卖三",
                   "卖四量", "卖四", "卖五量", "卖五", "日期", "时间"]
@@ -110,17 +124,17 @@ class Caculator
   end
 
   def getChargesForBuy(stock)
-    stock.buy_price * stock.buy_quantity * @account.charges_ratio * 0.01 + @account.comm_charge
+    stock.sum * @account.charges_ratio * 0.01 + @account.comm_charge
   end
 
   def getChargesForSale(cur_info, stock)
     cur_price = cur_info[3].to_f
-    cur_price * stock.buy_quantity * (@account.charges_ratio + @account.tax_ratio) * 0.01 + @account.comm_charge
+    cur_price * stock.buy_quantity * (@account.charges_ratio + @account.tax_ratio) * 0.01  + @account.comm_charge
   end
 
   def getGrossProfit(cur_info, stock)
     cur_price = cur_info[3].to_f
-    (cur_price - stock.buy_price) * stock.buy_quantity
+    cur_price * stock.buy_quantity - stock.sum
   end
 
   def getProfit(cur_info, stock)
@@ -136,7 +150,6 @@ class Caculator
       info = infos[stock.code]
       profits[stock.code] = self.getProfit(info, stock)
     end
-    p profits
     return profits
   end
 
@@ -155,10 +168,29 @@ class Caculator
   end
 end
 
+def fmtPrintProfit(stocks, infos, profits)
+  title = sprintf("股票名\t\t买入价\t保本价\t数量\t现价\t盈利\n")
+  printf title.colorize(:blue)
+  total_profit = 0
+  stocks.each do |stock|
+    info = infos[stock.code]
+    profit =  profits[stock.code]
+    test = sprintf("%s\t%.2f\t%.2f\t%d\t%.2f\t%.2f\n", info[0], stock.buy_price, stock.costing, stock.buy_quantity, info[3], profit)
+    test = profit >= 0 ? test.colorize( :red ) : test.colorize( :green )
+    printf test
+    total_profit += profit
+  end
+  printf "\n总盈利:\t".colorize(:blue)
+  total_profit = total_profit > 0 ? total_profit.to_s.colorize(:red) : total_profit.to_s.colorize(:green)
+  printf total_profit
+  printf "\n"
+end
+
+
 stock_cfg = YAML.load(File.open("stock.yml"))
 my_account = Account.buildFromCfg(stock_cfg) #应该在参数更新后重载
 current_status = WebInfo.new(stock_cfg["DataSouce"]["url"])
 infos = current_status.getStatus(my_account.all_stock)
 cal = Caculator.new(my_account)
-cal.getAllProfit(infos)
-# p (profit * 100).round * 0.01
+profits = cal.getAllProfit(infos)
+fmtPrintProfit(my_account.all_stock, infos, profits)
