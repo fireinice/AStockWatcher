@@ -210,7 +210,10 @@ class CFGController
   end
 
   def delStock(market, code)
-
+    stocks = @cfg["Stocks"]
+    to_delete = nil
+    stocks.delete_if {|stock| code == stock["code"] and market == stock["market"] }
+    self.updateCFG()
   end
 
 end
@@ -218,24 +221,24 @@ end
 cfg_file = CFGController.new("stock.yml")
 options = {}
 OptionParser.new do |opts|
+  code_parser = lambda {|s| v = []; v << s[0,2] <<  s[2..-1]; }
   opts.banner = "Usage: example.rb [options]"
   opts.separator ""
   opts.separator "Specific options:"
 
   opts.on("-a", "--add-stock [sh|sz_CODE],[BUY_PRICE],[BUY_QUANTITY]", Array, "Add a stock") do |s|
-    v[0] = s[0][0,2]
-    v[1] = s[0][2..-1]
-    v[2] = s[1].to_f
-    v[3] = s[2].to_i
+    v = code_parser.call(s[0])
+    v<< s[1].to_f
+    v<< s[2].to_i
     cfg_file.addStock(*v)
-    # return 0
+    exit(0)
   end
 
   opts.on("-d", "--delete-stock [sh|sz_CODE]", String, "delete a stock") do |s|
-    v[0] = s[0,2]
-    v[1] = s[2..-1]
+    p s
+    v = code_parser.call(s)
     cfg_file.delStock(*v)
-    # return 0
+    exit(0)
   end
 
 end.parse!
