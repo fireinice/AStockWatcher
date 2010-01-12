@@ -1,8 +1,8 @@
 #
-#  file::     crawler.rb
-#  brief::    Crawler Main Engine Class
+#  file::     stock.rb
+#  brief::    A Stock Watcher
 #
-#  author::   Zigler Zhang(fireinice@gmail.com)
+#  author::   fireinice(fireinice@gmail.com)
 #  bug::      No known bugs.
 #
 #   $Date: 2010/01/11 08:32:57 $
