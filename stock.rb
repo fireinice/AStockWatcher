@@ -13,7 +13,8 @@
 #++
 #
 $KCODE = 'u'
-require 'mechanize'
+require "net/http"
+require "uri"
 require "iconv"
 require "jcode"
 require "rubygems"
@@ -100,10 +101,10 @@ class WebInfo
   # http://hq.sinajs.cn/list=sz002238,sz000033
   def initialize(base_url)
     @base_url = base_url
-    @fetchAgent = WWW::Mechanize.new { |agent|
-      agent.user_agent_alias = 'Linux Mozilla'
-      agent.max_history = 0
-    }
+    # @fetchAgent = WWW::Mechanize.new { |agent|
+    #   agent.user_agent_alias = 'Linux Mozilla'
+    #   agent.max_history = 0
+    # }
   end
 
   def getURL(stockList)
@@ -114,7 +115,8 @@ class WebInfo
 
   def fetchData(stockList)
     url = self.getURL(stockList)
-    remote_data = @fetchAgent.get_file(url)
+    # remote_data = @fetchAgent.get_file(url)
+    remote_data = Net::HTTP.get URI.parse(url)
     remote_data = @@decoder.iconv(remote_data)
   end
 
