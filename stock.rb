@@ -166,7 +166,7 @@ class Caculator
   end
 
   def getProfitPercentage(profit, stock)
-    profit / stock.buy_price
+    profit / (stock.buy_price * stock.buy_quantity) * 100
   end
 
   def getAllProfit(infos)
