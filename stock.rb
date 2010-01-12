@@ -34,6 +34,10 @@ class Stock
     @costing = (self.sum * ( 1 + (charges_ratio * 2 + tax_ratio) * 0.01 )  + comm_charge) / @buy_quantity
   end
 
+  def ref_value
+    @market + @code
+  end
+
 
 end
 
@@ -137,6 +141,7 @@ class Caculator
     cur_price * stock.buy_quantity - stock.sum
   end
 
+
   def getProfit(cur_info, stock)
     g_profit = self.getGrossProfit(cur_info, stock) #毛利润
     buy_charges = self.getChargesForBuy(stock)
@@ -144,11 +149,20 @@ class Caculator
     profit = g_profit - buy_charges - sale_charges
   end
 
+  def getProfitPercentage(profit, stock)
+    profit / stock.buy_price
+  end
+
   def getAllProfit(infos)
     profits = {}
     @account.all_stock.each do |stock|
+      profits[stock.code] = []
       info = infos[stock.code]
-      profits[stock.code] = self.getProfit(info, stock)
+      profit = self.getProfit(info, stock)
+      profit_percentage = self.getProfitPercentage(profit, stock)
+      # profits[stock.code]  = %w[#{profit} #{profit_percentage}]
+      profits[stock.code] << profit
+      profits[stock.code] << profit_percentage
     end
     return profits
   end
@@ -169,18 +183,18 @@ class Caculator
 end
 
 def fmtPrintProfit(stocks, infos, profits)
-  title = sprintf("股票名\t\t买入价\t保本价\t数量\t现价\t盈利\n")
-  printf title.colorize(:blue)
+  title = sprintf("股票名\t\t买入价\t保本价\t数量\t现价\t盈利\t盈利率\n")
+  printf title.colorize(:light_cyan)
   total_profit = 0
   stocks.each do |stock|
     info = infos[stock.code]
     profit =  profits[stock.code]
-    test = sprintf("%s\t%.2f\t%.2f\t%d\t%.2f\t%.2f\n", info[0], stock.buy_price, stock.costing, stock.buy_quantity, info[3], profit)
-    test = profit >= 0 ? test.colorize( :red ) : test.colorize( :green )
+    test = sprintf("%s\t%.2f\t%.2f\t%d\t%.2f\t%.2f\t%.2f\n", info[0], stock.buy_price, stock.costing, stock.buy_quantity, info[3], profit[0], profit[1])
+    test = profit[0] >= 0 ? test.colorize( :light_red ) : test.colorize( :light_green )
     printf test
-    total_profit += profit
+    total_profit += profit[0]
   end
-  printf "\n总盈利:\t".colorize(:blue)
+  printf "\n总盈利:\t".colorize(:light_cyan)
   total_profit = total_profit > 0 ? total_profit.to_s.colorize(:red) : total_profit.to_s.colorize(:green)
   printf "#{total_profit}\n"
 end
@@ -219,34 +233,65 @@ class CFGController
 end
 
 cfg_file = CFGController.new("stock.yml")
-options = {}
-OptionParser.new do |opts|
-  code_parser = lambda {|s| v = []; v << s[0,2] <<  s[2..-1]; }
-  opts.banner = "Usage: example.rb [options]"
-  opts.separator ""
-  opts.separator "Specific options:"
-
-  opts.on("-a", "--add-stock [sh|sz_CODE],[BUY_PRICE],[BUY_QUANTITY]", Array, "Add a stock") do |s|
-    v = code_parser.call(s[0])
-    v<< s[1].to_f
-    v<< s[2].to_i
-    cfg_file.addStock(*v)
-    exit(0)
-  end
-
-  opts.on("-d", "--delete-stock [sh|sz_CODE]", String, "delete a stock") do |s|
-    p s
-    v = code_parser.call(s)
-    cfg_file.delStock(*v)
-    exit(0)
-  end
-
-end.parse!
-
+watch = false
 stock_cfg = cfg_file.cfg
 my_account = Account.buildFromCfg(stock_cfg) #应该在参数更新后重载
 current_status = WebInfo.new(stock_cfg["DataSouce"]["url"])
-infos = current_status.getStatus(my_account.all_stock)
 cal = Caculator.new(my_account)
-profits = cal.getAllProfit(infos)
-fmtPrintProfit(my_account.all_stock, infos, profits)
+opts = nil
+begin
+  OptionParser.new do |opts|
+    code_parser = lambda {|s| v = []; v << s[0,2] <<  s[2..-1]; }
+    opts.banner = "Usage: example.rb [options]"
+    opts.separator ""
+    opts.separator "Specific options:"
+
+    opts.on("-a", "--add-stock [sh|sz_CODE],[BUY_PRICE],[BUY_QUANTITY]", Array, "Add a stock") do |s|
+      v = code_parser.call(s[0])
+      v<< s[1].to_f
+      v<< s[2].to_i
+      cfg_file.addStock(*v)
+      exit(0)
+    end
+
+    opts.on("-d", "--delete-stock [sh|sz_CODE]", String, "delete a stock") do |s|
+      v = code_parser.call(s)
+      cfg_file.delStock(*v)
+      exit(0)
+    end
+
+    opts.on("-l", "--list", "list all stock") do
+      my_account.all_stock.each do |stock|
+        p stock.ref_value
+      end
+      exit(0)
+    end
+
+    opts.on("-w", "--[no-]watch",  "open watch mode") do |s|
+      watch = s
+    end
+
+    opts.on_tail("-h", "--help", "Show help message") do
+      puts opts
+      exit
+    end
+  end.parse!
+rescue OptionParser::InvalidOption
+  p opts.to_s
+  exit(0)
+end
+
+
+
+loop do
+  begin
+    system('clear') if watch
+    infos = current_status.getStatus(my_account.all_stock)
+    profits = cal.getAllProfit(infos)
+    fmtPrintProfit(my_account.all_stock, infos, profits)
+    break if not watch
+    sleep 5
+  rescue Interrupt
+    exit(0)
+  end
+end
