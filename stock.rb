@@ -1,3 +1,17 @@
+#
+#  file::     crawler.rb
+#  brief::    Crawler Main Engine Class
+#
+#  author::   Zigler Zhang(fireinice@gmail.com)
+#  bug::      No known bugs.
+#
+#   $Date: 2010/01/11 08:32:57 $
+#   $Revision: 1.0 $
+#
+#--
+#!/usr/bin/env ruby
+#++
+#
 $KCODE = 'u'
 require 'mechanize'
 require "iconv"
@@ -242,7 +256,7 @@ opts = nil
 begin
   OptionParser.new do |opts|
     code_parser = lambda {|s| v = []; v << s[0,2] <<  s[2..-1]; }
-    opts.banner = "Usage: example.rb [options]"
+    opts.banner = "Usage: #$0 [options]"
     opts.separator ""
     opts.separator "Specific options:"
 
