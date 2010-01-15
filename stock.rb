@@ -17,9 +17,8 @@ require "net/http"
 require "uri"
 require "iconv"
 require "jcode"
-require "rubygems"
-require "colorize"
 require "optparse"
+require "yaml"
 
 class Stock
   def initialize(code, market, price, quantity)
@@ -198,9 +197,41 @@ class Caculator
   end
 end
 
-def fmtPrintProfit(stocks, infos, profits)
+def tint(str, type, *bool_ref)
+  # type: 1=>"title",2=>"profit"
+  # bool_ref contains: is_gain(?), is_colorful
+  if bool_ref[-1]
+    case type
+    when 1
+      str =str.colorize(:light_cyan)
+    when 2
+      str = bool_ref[-2] ? str.colorize( :light_red ) :
+        str.colorize( :light_green )
+    end
+  end
+  return str
+end
+
+def fmtPrintProfit(stocks, infos, profits, is_colorful)
+  if is_colorful
+    begin
+      require "rubygems"
+      require "colorize"
+    rescue LoadError
+      begin
+        require "colorize"
+      rescue LoadError
+        p "The output require colorize library support, \
+please install it manully or with gems. \
+Or you could use argument -p to disable the colorful print effect."
+        exit 1
+      end
+    end
+  end
+
   title = sprintf("股票名\t\t买入价\t保本价\t数量\t现价\t盈利\t盈利率\n")
-  printf title.colorize(:light_cyan)
+  title = tint(title, 1, 0, is_colorful)
+  printf title
   total_profit = 0
   stocks.each do |stock|
     info = infos[stock.code]
@@ -210,15 +241,17 @@ def fmtPrintProfit(stocks, infos, profits)
       test = sprintf("%s\t-\t-\t-\t-\t-\t-\n", info[0])
     else
       test = sprintf("%s\t%.2f\t%.2f\t%d\t%.2f\t%.2f\t%.2f\n", info[0], stock.buy_price, stock.costing, stock.buy_quantity, info[3], profit[0], profit[1])
-      test = profit[0] >= 0 ? test.colorize( :light_red ) : test.colorize( :light_green )
+      test = tint(test, 2, profit[0]>0, is_colorful)
       total_profit += profit[0]
     end
     print test
   end
-  printf "\n总盈利:\t".colorize(:light_cyan)
+  total_title = "\n总盈利:\t"
+  total_title = tint(total_title, 1, 0, is_colorful)
+  printf total_title
   is_gain = total_profit > 0
   total_profit = sprintf("%.2f", total_profit)
-  total_profit = is_gain ? total_profit.colorize(:red) : total_profit.colorize(:green)
+  total_profit = tint(total_profit, 2, is_gain, is_colorful)
   puts total_profit
 end
 
@@ -257,6 +290,7 @@ end
 
 cfg_file = CFGController.new("stock.yml")
 watch = false
+plain = false
 stock_cfg = cfg_file.cfg
 my_account = Account.buildFromCfg(stock_cfg) #应该在参数更新后重载
 current_status = WebInfo.new(stock_cfg["DataSouce"]["url"])
@@ -294,6 +328,10 @@ begin
       watch = s
     end
 
+    opts.on("-p", "--plain",  "open watch mode") do |s|
+      plain = s
+    end
+
     opts.on_tail("-h", "--help", "Show help message") do
       puts opts
       exit
@@ -304,14 +342,12 @@ rescue OptionParser::InvalidOption
   exit(0)
 end
 
-
-
 loop do
   begin
     infos = current_status.getStatus(my_account.all_stock)
     profits = cal.getAllProfit(infos)
     system('clear') if watch
-    fmtPrintProfit(my_account.all_stock, infos, profits)
+    fmtPrintProfit(my_account.all_stock, infos, profits, !plain)
     break if not watch
     sleep 5
   rescue Interrupt
