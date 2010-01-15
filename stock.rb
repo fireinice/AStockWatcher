@@ -205,14 +205,21 @@ def fmtPrintProfit(stocks, infos, profits)
   stocks.each do |stock|
     info = infos[stock.code]
     profit =  profits[stock.code]
-    test = sprintf("%s\t%.2f\t%.2f\t%d\t%.2f\t%.2f\t%.2f\n", info[0], stock.buy_price, stock.costing, stock.buy_quantity, info[3], profit[0], profit[1])
-    test = profit[0] >= 0 ? test.colorize( :light_red ) : test.colorize( :light_green )
-    printf test
-    total_profit += profit[0]
+    if info[3].to_f < 0.01
+      #停牌
+      test = sprintf("%s\t-\t-\t-\t-\t-\t-\n", info[0])
+    else
+      test = sprintf("%s\t%.2f\t%.2f\t%d\t%.2f\t%.2f\t%.2f\n", info[0], stock.buy_price, stock.costing, stock.buy_quantity, info[3], profit[0], profit[1])
+      test = profit[0] >= 0 ? test.colorize( :light_red ) : test.colorize( :light_green )
+      total_profit += profit[0]
+    end
+    print test
   end
   printf "\n总盈利:\t".colorize(:light_cyan)
-  total_profit = total_profit > 0 ? total_profit.to_s.colorize(:red) : total_profit.to_s.colorize(:green)
-  printf "#{total_profit}\n"
+  is_gain = total_profit > 0
+  total_profit = sprintf("%.2f", total_profit)
+  total_profit = is_gain ? total_profit.colorize(:red) : total_profit.colorize(:green)
+  puts total_profit
 end
 
 class CFGController
@@ -301,9 +308,9 @@ end
 
 loop do
   begin
-    system('clear') if watch
     infos = current_status.getStatus(my_account.all_stock)
     profits = cal.getAllProfit(infos)
+    system('clear') if watch
     fmtPrintProfit(my_account.all_stock, infos, profits)
     break if not watch
     sleep 5
