@@ -19,7 +19,6 @@ require "iconv"
 require "jcode"
 require "optparse"
 require "yaml"
-
 class Stock
   def initialize(code, market, price, quantity)
     if not code or not market or not price or not quantity
@@ -31,7 +30,6 @@ class Stock
     @buy_quantity = quantity
     @costing = @buy_price
   end
-
   attr_reader :code, :market, :buy_price, :buy_quantity, :costing
 
   def Stock.initFromHash(info_hash)
@@ -44,8 +42,8 @@ class Stock
   end
 
 
-  def calcCosting(charges_ratio, tax_ratio, comm_charge)
-    @costing = (self.sum * ( 1 + (charges_ratio * 2 + tax_ratio) * 0.01 )  + comm_charge) / @buy_quantity
+  def calcCosting(charges_ratio, tax_ratio, other_charge)
+    @costing = (self.sum * ( 1 + (charges_ratio * 2 + tax_ratio) * 0.01 )  + other_charge) / @buy_quantity
   end
 
   def ref_value
@@ -56,17 +54,17 @@ class Stock
 end
 
 class Account
-  def initialize(charges_ratio, tax_ratio, comm_charge)
-    if not charges_ratio or not tax_ratio or not comm_charge
+  def initialize(charges_ratio, tax_ratio, other_charge)
+    if not charges_ratio or not tax_ratio or not other_charge
       raise ArgumentError, "Bad data"
     end
     @all_stock = []
     @charges_ratio = charges_ratio
     @tax_ratio = tax_ratio
-    @comm_charge = comm_charge
+    @other_charge = other_charge
   end
 
-  attr_reader :all_stock, :charges_ratio, :tax_ratio, :comm_charge
+  attr_reader :all_stock, :charges_ratio, :tax_ratio, :other_charge
 
   def addStock(stock)
     @all_stock << stock
@@ -74,7 +72,7 @@ class Account
 
   def Account.initChargesFromHash(info_hash)
     Account.new(info_hash["charges_ratio"], info_hash["tax_ratio"],
-                info_hash["comm_charge"])
+                info_hash["other_charge"])
   end
 
   def Account.buildFromCfg(cfg_yml)
@@ -82,7 +80,7 @@ class Account
     basket = cfg_yml["Stocks"]
     basket.each do |stock_info|
       stock = Stock.initFromHash(stock_info)
-      stock.calcCosting(account.charges_ratio, account.tax_ratio, account.comm_charge)
+      stock.calcCosting(account.charges_ratio, account.tax_ratio, account.other_charge)
       account.addStock(stock)
     end
     return account
@@ -143,12 +141,12 @@ class Caculator
   end
 
   def getChargesForBuy(stock)
-    stock.sum * @account.charges_ratio * 0.01 + @account.comm_charge
+    stock.sum * @account.charges_ratio * 0.01 + @account.other_charge
   end
 
   def getChargesForSale(cur_info, stock)
     cur_price = cur_info[3].to_f
-    cur_price * stock.buy_quantity * (@account.charges_ratio + @account.tax_ratio) * 0.01  + @account.comm_charge
+    cur_price * stock.buy_quantity * (@account.charges_ratio + @account.tax_ratio) * 0.01  + @account.other_charge
   end
 
   def getGrossProfit(cur_info, stock)
@@ -286,71 +284,94 @@ class CFGController
     self.updateCFG()
   end
 
+  def setCharges(charge_name, charge_money)
+    charges_config = @cfg["CommonConfig"]
+    if not charges_config.has_key?(charge_name)
+      return charges_config.keys
+    end
+    charges_config[charge_name] = charge_money.to_f
+    self.updateCFG()
+  end
 end
 
-cfg_file = CFGController.new("stock.yml")
-watch = false
-plain = false
-stock_cfg = cfg_file.cfg
-my_account = Account.buildFromCfg(stock_cfg) #应该在参数更新后重载
-current_status = WebInfo.new(stock_cfg["DataSouce"]["url"])
-cal = Caculator.new(my_account)
-opts = nil
-begin
-  OptionParser.new do |opts|
-    code_parser = lambda {|s| v = []; v << s[0,2] <<  s[2..-1]; }
-    opts.banner = "Usage: #$0 [options]"
-    opts.separator ""
-    opts.separator "Specific options:"
-
-    opts.on("-a", "--add-stock [sh|sz_CODE],[BUY_PRICE],[BUY_QUANTITY]", Array, "Add a stock") do |s|
-      v = code_parser.call(s[0])
-      v<< s[1].to_f
-      v<< s[2].to_i
-      cfg_file.addStock(*v)
-      exit(0)
-    end
-
-    opts.on("-d", "--delete-stock [sh|sz_CODE]", String, "delete a stock") do |s|
-      v = code_parser.call(s)
-      cfg_file.delStock(*v)
-      exit(0)
-    end
-
-    opts.on("-l", "--list", "list all stock") do
-      my_account.all_stock.each do |stock|
-        p stock.ref_value
-      end
-      exit(0)
-    end
-
-    opts.on("-w", "--[no-]watch",  "open watch mode") do |s|
-      watch = s
-    end
-
-    opts.on("-p", "--plain",  "open watch mode") do |s|
-      plain = s
-    end
-
-    opts.on_tail("-h", "--help", "Show help message") do
-      puts opts
-      exit
-    end
-  end.parse!
-rescue OptionParser::InvalidOption
-  p opts.to_s
-  exit(0)
-end
-
-loop do
+if $0 == __FILE__
+  cfg_file = CFGController.new("stock.yml")
+  watch = false
+  plain = false
+  stock_cfg = cfg_file.cfg
+  my_account = Account.buildFromCfg(stock_cfg) #应该在参数更新后重载
+  current_status = WebInfo.new(stock_cfg["DataSouce"]["url"])
+  cal = Caculator.new(my_account)
+  opts = nil
   begin
-    infos = current_status.getStatus(my_account.all_stock)
-    profits = cal.getAllProfit(infos)
-    system('clear') if watch
-    fmtPrintProfit(my_account.all_stock, infos, profits, !plain)
-    break if not watch
-    sleep 5
-  rescue Interrupt
+    OptionParser.new do |opts|
+      code_parser = lambda {|s| v = []; v << s[0,2] <<  s[2..-1]; }
+      opts.banner = "Usage: #$0 [options]"
+      opts.separator ""
+      opts.separator "Specific options:"
+
+      opts.on("-a", "--add-stock [sh|sz_CODE],[BUY_PRICE],[BUY_QUANTITY]", Array, "Add a stock") do |s|
+        v = code_parser.call(s[0])
+        v<< s[1].to_f
+        v<< s[2].to_i
+        cfg_file.addStock(*v)
+        exit(0)
+      end
+
+      opts.on("-d", "--delete-stock [sh|sz_CODE]", String, "delete a stock") do |s|
+        v = code_parser.call(s)
+        cfg_file.delStock(*v)
+        exit(0)
+      end
+
+      opts.on("-c", "--config [charges_ratio|tax_ratio|other_charge=charge]") do |money|
+        data = money.split("=")
+        # charges_list =  ["charges_ratio", "tax_ratio", "other_charge"]
+        ret = cfg_file.setCharges(data[0], data[1])
+        if ret.class.to_s == "Array"
+          all_charges = ret.join("|")
+          puts "the charge name should be in #{all_charges}"
+          exit(1)
+        end
+        exit(0)
+      end
+
+      opts.on("-l", "--list", "list all stock") do
+        my_account.all_stock.each do |stock|
+          p stock.ref_value
+        end
+        exit(0)
+      end
+
+
+      opts.on("-w", "--[no-]watch",  "open watch mode") do |s|
+        watch = s
+      end
+
+      opts.on("-p", "--plain",  "open watch mode") do |s|
+        plain = s
+      end
+
+      opts.on_tail("-h", "--help", "Show help message") do
+        puts opts
+        exit
+      end
+    end.parse!
+  rescue OptionParser::InvalidOption
+    p opts.to_s
     exit(0)
+  end
+
+  loop do
+    begin
+      infos = current_status.getStatus(my_account.all_stock)
+      profits = cal.getAllProfit(infos)
+      system('clear') if watch
+      fmtPrintProfit(my_account.all_stock, infos, profits, !plain)
+      break if not watch
+      sleep 5
+    rescue Interrupt
+      exit(0)
+    end
   end
 end
