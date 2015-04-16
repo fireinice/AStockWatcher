@@ -304,6 +304,11 @@ class CFGController
   end
 
   def addStock(market, code, price, quantity)
+    stock = {}
+    stock["market"] = market
+    stock["code"] = code
+    stock["buy_price"] = price
+    stock["buy_quantity"] = quantity
     @cfg["Stocks"] << stock
     # should check stock if invalid here
     self.updateCFG()
