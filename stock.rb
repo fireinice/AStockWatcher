@@ -1,3 +1,4 @@
+# coding: utf-8
 #
 #  file::     stock.rb
 #  brief::    A Stock Watcher
@@ -12,29 +13,33 @@
 #!/usr/bin/env ruby
 #++
 #
-$KCODE = 'u'
 require "net/http"
 require "uri"
 require "iconv"
-require "jcode"
 require "optparse"
 require "yaml"
 class Stock
-  def initialize(code, market, price, quantity)
-    if not code or not market or not price or not quantity
+  def initialize(code, market)
+    if not code or not market
       raise ArgumentError, "Bad data"
     end
     @code = code
     @market = market
+  end
+  attr_reader :code, :market, :buy_price, :buy_quantity, :costing
+
+  def updateBuyInfo(price, quantity)
     @buy_price = price
     @buy_quantity = quantity
     @costing = @buy_price
   end
-  attr_reader :code, :market, :buy_price, :buy_quantity, :costing
 
   def Stock.initFromHash(info_hash)
-    Stock.new(info_hash["code"], info_hash["market"],
-              info_hash["buy_price"], info_hash["buy_quantity"])
+    stock = Stock.new(info_hash["code"], info_hash["market"])
+    if info_hash["buy_quantity"]
+      stock.updateBuyInfo(info_hash["buy_price"], info_hash["buy_quantity"])
+    end
+    return stock
   end
 
   def sum
@@ -43,7 +48,20 @@ class Stock
 
 
   def calcCosting(charges_ratio, tax_ratio, other_charge)
+    if not @buy_quantity
+      @costing = 0
+      return @costing
+    end
     @costing = (self.sum * ( 1 + (charges_ratio * 2 + tax_ratio) * 0.01 )  + other_charge) / @buy_quantity
+  end
+
+  def to_hash
+    info = {}
+    info["market"] = @market
+    info["code"] = @code
+    info["buy_price"] = @buy_price
+    info["buy_quantity"] = @buy_quantity
+    return info
   end
 
   def ref_value
@@ -80,8 +98,10 @@ class Account
     basket = cfg_yml["Stocks"]
     basket.each do |stock_info|
       stock = Stock.initFromHash(stock_info)
-      stock.calcCosting(account.charges_ratio, account.tax_ratio, account.other_charge)
-      account.addStock(stock)
+      if stock.buy_quantity > 0
+        stock.calcCosting(account.charges_ratio, account.tax_ratio, account.other_charge)
+        account.addStock(stock)
+      end
     end
     return account
   end
@@ -256,6 +276,11 @@ end
 class CFGController
   def initialize(filename)
     @cfg = YAML.load(File.open(filename))
+    @stocks = {}
+    @cfg["Stocks"].each do |stockInfo|
+      stock = Stock.initFromHash(stockInfo)
+      @stocks[stock.ref_value] = stock
+    end
     @filename = filename
   end
   attr_reader :cfg
@@ -266,12 +291,19 @@ class CFGController
     end
   end
 
-  def addStock(market, code, price, quantity)
+  def updateStockBuyInfo(code, price, quatity)
+  end
+
+  def addStock(market, code)
     stock = {}
     stock["market"] = market
     stock["code"] = code
-    stock["buy_price"] = price
-    stock["buy_quantity"] = quantity
+    @cfg["Stocks"] << stock
+    # should check stock if invalid here
+    self.updateCFG()
+  end
+
+  def addStock(market, code, price, quantity)
     @cfg["Stocks"] << stock
     # should check stock if invalid here
     self.updateCFG()
