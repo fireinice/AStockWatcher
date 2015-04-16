@@ -26,12 +26,23 @@ class Stock
     @code = code
     @market = market
   end
-  attr_reader :code, :market, :buy_price, :buy_quantity, :costing
+  attr_reader :code, :market, :buy_price, :buy_quantity, :costing,
+              :calc_begin_date, :day_price_diff, :trending_amp
 
   def updateBuyInfo(price, quantity)
     @buy_price = price
     @buy_quantity = quantity
     @costing = @buy_price
+  end
+
+  def updateTrendingInfo(calcBeginDate, dayPriceDiff, trendingAmp)
+    @calc_begin_date = calcBeginDate
+    @day_price_diff = dayPriceDiff
+    @trending_amp = trendingAmp
+  end
+
+  def Stock.get_ref_value(market, code)
+    return market + code
   end
 
   def Stock.initFromHash(info_hash)
@@ -291,7 +302,18 @@ class CFGController
     end
   end
 
-  def updateStockBuyInfo(code, price, quatity)
+  def updateStockTrendingInfo(market, code, begDate, dayPriceDiff, amp)
+    @stocks[Stock.get_ref_value(market, code)].updateTrendingInfo(begDate, dayPriceDiff, amp)
+    @cfg["Stocks"] = []
+    @stocks.each { |stock| @cfg["Stocks"] << stock.to_hash }
+    self.updateCFG()
+  end
+
+  def updateStockBuyInfo(market, code, price, quatity)
+    @stocks[Stock.get_ref_value(market, code)].updateBuyInfo(price, quantity)
+    @cfg["Stocks"] = []
+    @stocks.each { |stock| @cfg["Stocks"] << stock.to_hash }
+    self.updateCFG()
   end
 
   def addStock(market, code)
