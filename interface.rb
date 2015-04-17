@@ -1,64 +1,22 @@
 # coding: utf-8
+require "iconv"
 require "uri"
 require_relative "stock"
-
-class StockRecord
-  def initialize(date:, open:, close:, high:, low:, vol:, adj_close:)
-    @date = date
-    @open = open
-    @close = close
-    @high = high
-    @low = low
-    @vol = vol
-    @adj_close = adj_close
-  end
-  attr_reader :date, :open, :close, :high, :low, :vol, :adj_close
-end
-
-class StockHistory
-  def initialize(records_list)
-    @records = records_list
-    @dates = []
-    @records.each { |record| @dates << record.date  }
-    @dates.sort!
-  end
-
-  def getTradingDays(beginDate, endDate)
-    count = 0
-    begStr = beginDate.strftime('%F')
-    endStr = endDate.strftime('%F')
-    if begStr >= endStr
-      return 0
-    end
-    if @dates[0] > begStr or  @dates[-1] < endStr
-      return -1
-    end
-
-    @dates.each do |dateStr|
-      if dateStr < begStr
-        next
-      elsif dateStr > endStr
-        count += 1
-        return count
-      end
-      count += 1
-    end
-    return count
-  end
-end
 
 class YahooHistory
   #http://table.finance.yahoo.com/table.csv?a=0&b=1&c=2012&d=3&e=19&f=2012&s=600000.ss
   # @@decoder = Iconv.new("UTF-8//IGNORE", "GBK//IGNORE")
-  def initialize(base_url)
-    @base_url = base_url
-    # @fetchAgent = WWW::Mechanize.new { |agent|
-    #   agent.user_agent_alias = 'Linux Mozilla'
-    #   agent.max_history = 0
-    # }
-  end
+  @@base_url = "http://table.finance.yahoo.com/table.csv"
 
-  def getURL(stock, beginDate, endDate)
+  # def initialize(base_url)
+  #   @base_url = base_url
+  #   # @fetchAgent = WWW::Mechanize.new { |agent|
+  #   #   agent.user_agent_alias = 'Linux Mozilla'
+  #   #   agent.max_history = 0
+  #   # }
+  # end
+
+  def self.getURL(stock, beginDate, endDate)
     market = stock.market
     if stock.market == 'sh'
       market = 'ss'
@@ -72,10 +30,10 @@ class YahooHistory
     infos['e'] = endDate.mday
     infos['f'] = endDate.year
     infos['s'] = stockName
-    url = @base_url + "?" + URI.encode_www_form(infos)
+    url = @@base_url + "?" + URI.encode_www_form(infos)
   end
 
-  def fetchData(stock, begDate, endDate)
+  def self.fetchData(stock, begDate, endDate)
     url = self.getURL(stock, begDate, endDate)
     uri = URI.parse(url)
     http = Net::HTTP.new(uri.host)
@@ -84,12 +42,12 @@ class YahooHistory
     remote_data = res.body if res.is_a?(Net::HTTPSuccess)
   end
 
-  def getStatus(stock, begDate ,endDate)
+  def self.getStatus(stock, begDate ,endDate)
     remote_data = self.fetchData(stock, begDate, endDate)
     self.parseData(remote_data)
   end
 
-  def parseData(rdata)
+  def self.parseData(rdata)
     records = []
     first = true
     rdata.split("\n").each do |dataLine|
@@ -115,32 +73,54 @@ class YahooHistory
   end
 end
 
-class TrendingCalculator
-  def self.calc(begLineDate, begLinePrice, endLineDate, endLinePrice, highLineDate, highLinePrice, stockHistory)
-    priceDiff = endLinePrice - begLinePrice
-    tDays = stockHistory.getTradingDays(begLineDate, endLineDate)
-    if tDays < 1
-      return nil
+
+class WebInfo
+  @@decoder = Iconv.new("UTF-8//IGNORE", "GBK//IGNORE")
+  @@inter_name = ["股票名", "今开", "昨收", "报价", "最高价", "最低价", "竞买", "竞卖", "成交量",
+                  "成交金额", "买一量", "买一", "买二量", "买二", "买三量", "买三", "买四量", "买四",
+                  "买五量", "买五", "卖一量", "卖一", "卖二量", "卖二", "卖三量", "卖三",
+                  "卖四量", "卖四", "卖五量", "卖五", "日期", "时间"]
+  # http://hq.sinajs.cn/list=sz002238,sz000033
+  def initialize(base_url)
+    @base_url = base_url
+    # @fetchAgent = WWW::Mechanize.new { |agent|
+    #   agent.user_agent_alias = 'Linux Mozilla'
+    #   agent.max_history = 0
+    # }
+  end
+
+  def getURL(stockList)
+    stock_infos = []
+    stockList.each { |stock| stock_infos << stock.market + stock.code  }
+    url = @base_url + stock_infos.join(",")
+  end
+
+  def fetchData(stockList)
+    url = self.getURL(stockList)
+    # remote_data = @fetchAgent.get_file(url)
+    remote_data = Net::HTTP.get URI.parse(url)
+    remote_data = @@decoder.iconv(remote_data)
+  end
+
+  def getStatus(stockList)
+    remote_data = self.fetchData(stockList)
+    infos = self.parseData(remote_data)
+  end
+
+  def parseData(rdata)
+    info_hash = {}
+    rdata.split("\n").each do |dataLine|
+      data_list = dataLine.split("=")
+      code = data_list[0][/\d+/]
+      info_str = data_list[1].delete("\";")
+      infos = info_str.split(",")
+      info_hash[code] = infos
     end
-    tDiff = priceDiff / (tDays - 1)
-    tHeight = 0
-    begDiffDate = endLineDate
-    case begLineDate <=> highLineDate
-    when -1
-      tDays = stockHistory.getTradingDays(begLineDate, highLineDate)
-    when 1
-      tDays = -stockHistory.getTradingDays(highLineDate, begLineDate)
-    when 0
-      tDays = 1
-    end
-    highLineDatePrice = begLinePrice + tDiff * (tDays - 1)
-    tAmp = highLinePrice - highLineDatePrice
+    return info_hash
   end
 end
 
 if $0 == __FILE__
-  yahooHistoryBaseURL = "http://table.finance.yahoo.com/table.csv"
-  historyInterface = YahooHistory.new(yahooHistoryBaseURL)
   stock = Stock.new("600000", "sh", 1, 100)
   begDate = Date.new(2015, 4, 1)
   endDate = Date.new(2015, 4, 15)
@@ -149,5 +129,4 @@ if $0 == __FILE__
   begDate = Date.new(2015, 4, 3)
   endDate = Date.new(2015, 4, 16)
   puts stock_history.getTradingDays(begDate, endDate)
-
 end
