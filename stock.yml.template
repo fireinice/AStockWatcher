@@ -6,11 +6,22 @@ CommonConfig:
 DataSouce:
   url: http://hq.sinajs.cn/list=
 Stocks:
-- code: 002238
+- !ruby/object:Stock
+  code: 002238
   market: sz
   buy_price: 21.14
   buy_quantity: 100
-- code: "000033"
+  costing: 21.340259999999997
+- !ruby/object:Stock
+  code: '000033'
   market: sz
   buy_price: 7.75
   buy_quantity: 400
+  costing: 7.8222499999999995
+- !ruby/object:Stock
+  code: '000423'
+  market: sz
+  calc_begin_date: 2015-04-01
+  day_price_diff: 0.2009523809523809
+  trending_amp: 2.2147619047619074
+  calc_begin_price: 41.73
