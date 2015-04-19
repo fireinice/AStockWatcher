@@ -223,8 +223,8 @@ if $0 == __FILE__
       end
 
       opts.on("-l", "--list", "list all stock") do
-        my_account.all_stock.each do |stock|
-          p stock.ref_value
+        cfg_file.getAllStocks.each.each do |stock|
+          puts stock.ref_value
         end
         exit(0)
       end
