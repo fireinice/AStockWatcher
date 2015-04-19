@@ -1,5 +1,6 @@
 # coding: utf-8
 require_relative "stock"
+
 class Caculator
   def initialize(account)
     @account = account
@@ -61,8 +62,35 @@ class Caculator
 end
 
 class TrendingCalculator
+  def self.getGap(stock, infos)
+    curPrice = infos[stock.code][3].to_f
+    if stock.calc_begin_date.nil? or curPrice < 0.01
+      return nil
+    end
+    begDate = stock.calc_begin_date
+    endDate =  Date.today.prev_day
+    if stock.hasHistory?
+      history = stock.history
+    else
+      records = YahooHistory.getStatus(stock, begDate, endDate)
+      history = StockHistory.new(records)
+    end
+    tDays = history.getTradingDays(begDate, endDate)
+    base = stock.calc_begin_price + stock.day_price_diff * tDays
+    gap = curPrice - base
+    gapRatio = (curPrice - base) * 100 / curPrice
+    if gap < 0
+      amp = base - stock.trending_amp
+      ampType = 'l'
+    else
+      amp = base + stock.trending_amp
+      ampType = 'u'
+    end
+    ampRatio = (curPrice - amp) * 100 / curPrice
+    return [base, gapRatio, amp, ampRatio, ampType]
+  end
+
   def self.calc(stockHistory, begLineDate, begLinePrice, endLineDate, endLinePrice, highLineDate, highLinePrice)
-    stockHistory = stock.history
     priceDiff = endLinePrice - begLinePrice
     tDays = stockHistory.getTradingDays(begLineDate, endLineDate)
     if tDays < 1
@@ -70,6 +98,7 @@ class TrendingCalculator
     end
     tDiff = priceDiff / (tDays - 1)
     begDiffDate = endLineDate
+    begDiffPrice = endLinePrice
     case begLineDate <=> highLineDate
     when -1
       tDays = stockHistory.getTradingDays(begLineDate, highLineDate)
@@ -80,6 +109,6 @@ class TrendingCalculator
     end
     highLineDatePrice = begLinePrice + tDiff * (tDays - 1)
     tAmp = highLinePrice - highLineDatePrice
-    return [begDiffDate, tDiff, tAmp]
+    return [begDiffDate, begDiffPrice, tDiff, tAmp]
   end
 end

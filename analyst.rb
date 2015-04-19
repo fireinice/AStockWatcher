@@ -1,5 +1,7 @@
+# coding: utf-8
 require_relative "stock"
 require_relative "calculator"
+require_relative "interface"
 
 class StockAnalyst
   def self.updateStockHistory(stock,startDate, endDate, ampDate)
@@ -7,7 +9,7 @@ class StockAnalyst
     dates.sort!
     begDate = dates[0]
     endDate =  Date.today.prev_day
-    records = historyInterface.getStatus(stock, begDate, endDate)
+    records = YahooHistory.getStatus(stock, begDate, endDate)
     stock.updateHistory(StockHistory.new(records))
   end
 
@@ -16,11 +18,11 @@ class StockAnalyst
     if not stock.hasHistory?
       self.updateStockHistory(stock, startDate, endDate, ampDate)
     end
-    calcBeginDate, dayPriceDiff, trendingAmp =
+    calcBeginDate, calcBeginPrice, dayPriceDiff, trendingAmp =
                                  TrendingCalculator.calc(
                                    stock.history, startDate, startPrice,
                                    endDate, endPrice,
                                    ampDate, ampPrice)
-    stock.updateTrendingInfo(calcBeginDate, dayPriceDiff, trendingAmp)
+    stock.updateTrendingInfo(calcBeginDate, calcBeginPrice, dayPriceDiff, trendingAmp)
   end
 end

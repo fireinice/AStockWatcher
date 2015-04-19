@@ -1,11 +1,11 @@
---- 
-CommonConfig: 
+---
+CommonConfig:
   charges_ratio: 0.4
   tax_ratio: 0.1
-  comm_charge: 1
-DataSouce: 
+  other_charge: 1
+DataSouce:
   url: http://hq.sinajs.cn/list=
-Stocks: 
+Stocks:
 - code: 002238
   market: sz
   buy_price: 21.14

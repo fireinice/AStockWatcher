@@ -31,9 +31,9 @@ end
 
 class StockHistory
   def initialize(records_list)
-    @records = records_list
+    @records = {}
     @dates = []
-    @records.each { |record| @dates << record.date  }
+    records_list.each { |record| @dates << record.date; @records[record.date] = record }
     @dates.sort!
   end
 
@@ -52,7 +52,6 @@ class StockHistory
       if dateStr < begStr
         next
       elsif dateStr > endStr
-        count += 1
         return count
       end
       count += 1
@@ -73,11 +72,15 @@ class Stock
   end
 
   attr_reader :code, :market, :buy_price, :buy_quantity, :costing,
-              :calc_begin_date, :day_price_diff, :trending_amp,
+              :calc_begin_date, :calc_begin_price, :day_price_diff, :trending_amp,
               :history
 
+  def encode_with coder
+    instance_variables.map{|vname| coder[vname.to_s()[1..-1]] = instance_variable_get vname if vname != :@history}
+  end
+
   def hasHistory?()
-    @history.nil?
+    not @history.nil?
   end
 
   def updateHistory(stockHistory)
@@ -90,8 +93,9 @@ class Stock
     @costing = @buy_price
   end
 
-  def updateTrendingInfo(calcBeginDate, dayPriceDiff, trendingAmp)
+  def updateTrendingInfo(calcBeginDate, calcBeginPrice, dayPriceDiff, trendingAmp)
     @calc_begin_date = calcBeginDate
+    @calc_begin_price = calcBeginPrice
     @day_price_diff = dayPriceDiff
     @trending_amp = trendingAmp
   end
@@ -162,9 +166,8 @@ class Account
   def Account.buildFromCfg(cfg_yml)
     account = Account.initChargesFromHash(cfg_yml["CommonConfig"])
     basket = cfg_yml["Stocks"]
-    basket.each do |stock_info|
-      stock = Stock.initFromHash(stock_info)
-      if stock.buy_quantity > 0
+    basket.each do |stock|
+      if not stock.buy_quantity.nil? and stock.buy_quantity > 0
         stock.calcCosting(account.charges_ratio, account.tax_ratio, account.other_charge)
         account.addStock(stock)
       end

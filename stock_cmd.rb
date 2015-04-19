@@ -3,6 +3,7 @@ require "optparse"
 require "yaml"
 require_relative "stock"
 require_relative "interface"
+require_relative "analyst"
 require_relative "calculator"
 
 def tint(str, type, *bool_ref)
@@ -37,7 +38,8 @@ Or you could use argument -p to disable the colorful print effect."
     end
   end
 
-  title = sprintf("股票名\t\t买入价\t保本价\t数量\t现价\t盈利\t盈利率\n")
+
+  title = sprintf("股票名\t\t买入价\t保本价\t数量\t现价\t盈利\t盈利率\t趋势线\t差率1\t压力线\t差率2\n")
   title = tint(title, 1, 0, is_colorful)
   printf title
   total_profit = 0
@@ -46,12 +48,26 @@ Or you could use argument -p to disable the colorful print effect."
     profit =  profits[stock.code]
     if info[3].to_f < 0.01
       #停牌
-      test = sprintf("%s\t-\t-\t-\t-\t-\t-\n", info[0])
+      test = sprintf("%s\t-\t-\t-\t-\t-\t-", info[0])
+    elsif
+      stock.buy_quantity.nil? or stock.buy_quantity < 1
+      #未持股
+      test = sprintf("%s\t-\t-\t-\t%s\t-\t-", info[0], info[3])
     else
-      test = sprintf("%s\t%.2f\t%.2f\t%d\t%.2f\t%.2f\t%.2f\n", info[0], stock.buy_price, stock.costing, stock.buy_quantity, info[3], profit[0], profit[1])
-      test = tint(test, 2, profit[0]>0, is_colorful)
+      test = sprintf("%s\t%.2f\t%.2f\t%d\t%.2f\t%.2f\t%.2f", info[0], stock.buy_price, stock.costing, stock.buy_quantity, info[3], profit[0], profit[1])
       total_profit += profit[0]
     end
+    gap = TrendingCalculator.getGap(stock, infos)
+    if gap.nil?
+      test += "\t-\t-\t-\t-"
+    else
+      test += sprintf("\t%.2f\t%.2f\t%.2f\t%.2f", gap[0], gap[1], gap[2], gap[3])
+      test = tint(test, 2, gap[0]>0, is_colorful)
+    end
+    if not profit.nil?
+      test = tint(test, 2, profit[0]>0, is_colorful)
+    end
+    test += "\n"
     print test
   end
   total_title = "\n总盈利:\t"
@@ -67,8 +83,7 @@ class CFGController
   def initialize(filename)
     @cfg = YAML.load(File.open(filename))
     @stocks = {}
-    @cfg["Stocks"].each do |stockInfo|
-      stock = Stock.initFromHash(stockInfo)
+    @cfg["Stocks"].each do |stock|
       @stocks[stock.ref_value] = stock
     end
     @filename = filename
@@ -76,6 +91,7 @@ class CFGController
   attr_reader :cfg
 
   def updateCFG()
+    @cfg["Stocks"] = @stocks.values
     File.open( @filename, 'w' ) do |out|
       YAML.dump(@cfg , out )
     end
@@ -87,8 +103,6 @@ class CFGController
       @stocks[stockKey] = Stock.new(code, market)
     end
     @stocks[stockKey].updateTrendingInfo(begDate, dayPriceDiff, amp)
-    @cfg["Stocks"] = []
-    @stocks.each { |stock| @cfg["Stocks"] << stock.to_hash }
     self.updateCFG()
   end
 
@@ -98,35 +112,43 @@ class CFGController
       @stocks[stockKey] = Stock.new(code, market)
     end
     @stocks[stockKey].updateBuyInfo(price, quantity)
-    @cfg["Stocks"] = []
-    @stocks.each { |stock| @cfg["Stocks"] << stock.to_hash }
     self.updateCFG()
   end
 
+  def updateStock(stock)
+    stockKey = stock.ref_value
+    @stocks[stockKey] = stock
+    self.updateCFG()
+  end
+
+  def getAllStocks()
+    return @stocks.values
+  end
+
+  def getStock(market, code)
+    stockKey = Stock.get_ref_value(market, code)
+    if not @stocks.has_key?(stockKey)
+      @stocks[stockKey] = Stock.new(code, market)
+    end
+    return @stocks[stockKey]
+  end
+
   def addStock(market, code)
-    stock = {}
-    stock["market"] = market
-    stock["code"] = code
-    @cfg["Stocks"] << stock
-    # should check stock if invalid here
+    stockKey = Stock.get_ref_value(market, code)
+    @stocks[stockKey] = Stock.new(code, market)
     self.updateCFG()
   end
 
   def addStock(market, code, price, quantity)
-    stock = {}
-    stock["market"] = market
-    stock["code"] = code
-    stock["buy_price"] = price
-    stock["buy_quantity"] = quantity
-    @cfg["Stocks"] << stock
-    # should check stock if invalid here
+    stockKey = Stock.get_ref_value(market, code)
+    @stocks[stockKey] = Stock.new(code, market)
+    @stocks[stockKey].updateBuyInfo(price, quantity)
     self.updateCFG()
   end
 
   def delStock(market, code)
-    stocks = @cfg["Stocks"]
-    to_delete = nil
-    stocks.delete_if {|stock| code == stock["code"] and market == stock["market"] }
+    stockKey = Stock.get_ref_value(market, code)
+    @stocks.delete(stockKey)
     self.updateCFG()
   end
 
@@ -172,9 +194,13 @@ if $0 == __FILE__
         tradingLineBeginPrice = s[2].to_f
         tradingLineEndDate = Date.parse(s[3])
         tradingLineEndPrice = s[4].to_f
-        ampLineEndDate = Date.parse(s[5])
-        ampLineEndPrice = s[6].to_f
-        cfg_file.updateTrendingInfo()
+        ampLineDate = Date.parse(s[5])
+        ampLinePrice = s[6].to_f
+        stock = cfg_file.getStock(market, code)
+        StockAnalyst.analyzeTrending(
+          stock, tradingLineBeginDate, tradingLineBeginPrice,
+          tradingLineEndDate, tradingLineEndPrice, ampLineDate, ampLinePrice)
+        cfg_file.updateStock(stock)
         exit(0)
       end
 
@@ -224,10 +250,11 @@ if $0 == __FILE__
 
   loop do
     begin
-      infos = current_status.getStatus(my_account.all_stock)
+      infos = current_status.getStatus(cfg_file.getAllStocks)
       profits = cal.getAllProfit(infos)
       system('clear') if watch
-      fmtPrintProfit(my_account.all_stock, infos, profits, !plain)
+      # fmtPrintProfit(my_account.all_stock, infos, profits, !plain)
+      fmtPrintProfit(cfg_file.getAllStocks, infos, profits, !plain)
       break if not watch
       sleep 5
     rescue Interrupt

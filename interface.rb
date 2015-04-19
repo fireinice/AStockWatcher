@@ -3,7 +3,7 @@ require "iconv"
 require "uri"
 require_relative "stock"
 
-class YahooHistory
+class StockHistoryBase
   #http://table.finance.yahoo.com/table.csv?a=0&b=1&c=2012&d=3&e=19&f=2012&s=600000.ss
   # @@decoder = Iconv.new("UTF-8//IGNORE", "GBK//IGNORE")
   @@base_url = "http://table.finance.yahoo.com/table.csv"
@@ -33,8 +33,7 @@ class YahooHistory
     url = @@base_url + "?" + URI.encode_www_form(infos)
   end
 
-  def self.fetchData(stock, begDate, endDate)
-    url = self.getURL(stock, begDate, endDate)
+  def self.fetchData(url)
     uri = URI.parse(url)
     http = Net::HTTP.new(uri.host)
     http.open_timeout = 5
@@ -42,8 +41,9 @@ class YahooHistory
     remote_data = res.body if res.is_a?(Net::HTTPSuccess)
   end
 
-  def self.getStatus(stock, begDate ,endDate)
-    remote_data = self.fetchData(stock, begDate, endDate)
+  def self.getStatus(stock, begDate, endDate)
+    url = self.getURL(stock, begDate, endDate)
+    remote_data = self.fetchData(url)
     self.parseData(remote_data)
   end
 
@@ -71,6 +71,18 @@ class YahooHistory
     end
     return records
   end
+end
+
+class IFengHistory < StockHistoryBase
+  @@base_url = "http://api.finance.ifeng.com/akdaily/?code=%s&type=last"
+  def self.getURL(stock, beginDate, endDate)
+    stockName = stock.market+stock.code
+    url = sprintf(@@base_url, stockName)
+  end
+end
+
+class YahooHistory < StockHistoryBase
+  @@base_url = "http://table.finance.yahoo.com/table.csv"
 end
 
 
