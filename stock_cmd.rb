@@ -62,7 +62,7 @@ Or you could use argument -p to disable the colorful print effect."
       test += "\t-\t-\t-\t-"
     else
       test += sprintf("\t%.2f\t%.2f\t%.2f\t%.2f", gap[0], gap[1], gap[2], gap[3])
-      test = tint(test, 2, gap[0]>0, is_colorful)
+      test = tint(test, 2, gap[1]>0, is_colorful)
     end
     if not profit.nil?
       test = tint(test, 2, profit[0]>0, is_colorful)
