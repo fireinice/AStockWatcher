@@ -74,6 +74,7 @@ class Stock
 
   attr_reader :code, :market, :buy_price, :buy_quantity, :costing,
               :calc_begin_date, :calc_begin_price, :day_price_diff, :trending_amp,
+              :high_date, :gbrc_line, :last_update_date
               :history
 
   def encode_with coder
@@ -82,6 +83,12 @@ class Stock
 
   def hasHistory?()
     not @history.nil?
+  end
+
+  def updateGBRC(highDate, gbrcLine)
+    @high_date = highDate
+    @gbrc_line = gbrcLine
+    @last_update_date = Date.today
   end
 
   def updateHistory(stockHistory)

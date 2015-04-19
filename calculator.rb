@@ -112,3 +112,26 @@ class TrendingCalculator
     return [begDiffDate, begDiffPrice, tDiff, tAmp]
   end
 end
+
+class GBRCCalculator
+  def self.getGap(stock, infos)
+    if stock.gbrc_line.nil?
+      return nil
+    end
+    curPrice = infos[stock.code][3].to_f
+    tDiff = curPrice - stock.gbrc_line
+    gapRatio = tDiff * 100 / curPrice
+    return [tDiff, gapRatio]
+  end
+
+  def self.calc(stock)
+    if stock.hasHistory?
+      history = stock.history
+    else
+      endDate = Date.today.prev_day
+      begDate = endDate - 30
+      records = YahooHistory.getStatus(stock, begDate, endDate)
+      history = StockHistory.new(records)
+    end
+  end
+end

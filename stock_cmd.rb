@@ -39,7 +39,7 @@ Or you could use argument -p to disable the colorful print effect."
   end
 
 
-  title = sprintf("股票名\t\t买入价\t保本价\t数量\t现价\t盈利\t盈利率\t趋势线\t差率1\t压力线\t差率2\n")
+  title = sprintf("股票名\t\t买入价\t保本价\t数量\t现价\t盈利\t盈利率\t趋势线\t差率1\t压力线\t差率2\t顾比倒数线\t差率3\n")
   title = tint(title, 1, 0, is_colorful)
   printf title
   total_profit = 0
@@ -56,17 +56,28 @@ Or you could use argument -p to disable the colorful print effect."
     else
       test = sprintf("%s\t%.2f\t%.2f\t%d\t%.2f\t%.2f\t%.2f", info[0], stock.buy_price, stock.costing, stock.buy_quantity, info[3], profit[0], profit[1])
       total_profit += profit[0]
+      test = tint(test, 2, profit[0]>0, is_colorful)
     end
+
     gap = TrendingCalculator.getGap(stock, infos)
     if gap.nil?
       test += "\t-\t-\t-\t-"
     else
-      test += sprintf("\t%.2f\t%.2f\t%.2f\t%.2f", gap[0], gap[1], gap[2], gap[3])
-      test = tint(test, 2, gap[1]>0, is_colorful)
+      trending_info = sprintf("\t%.2f\t%.2f\t%.2f\t%.2f", gap[0], gap[1], gap[2], gap[3])
+      trending_info  = tint(trending_info, 2, gap[1] > 0, is_colorful)
+
+      test += trending_info
     end
-    if not profit.nil?
-      test = tint(test, 2, profit[0]>0, is_colorful)
+
+    gbrc_gap = GBRCCalculator.getGap(stock, infos)
+    if gap.nil?
+      test += "\t-\t-"
+    else
+      gbrc_info = sprintf("\t%.2f\t%.2f", gap[0], gap[1])
+      gbrc_info  = tint(gbrc_info, 2, gap[1] > 0, is_colorful)
+      test += gbrc_info
     end
+
     test += "\n"
     print test
   end
@@ -185,8 +196,11 @@ if $0 == __FILE__
         cfg_file.addStock(*v)
         exit(0)
       end
+      opts.on("-g","--analyze-gbrc [sh|sz_CODE]", String, "analysis a stock with GuBi Revese Count Line") do |s|
+        exit(0)
+      end
 
-      opts.on("-n", "--analysis-stock [sh|sz_CODE],[TradingLineStartDate],[TradingLineStartPrice],[TradingLineEndDate],[TradingLineEndPrice],[AmpLineDate],[AmpLinePrice],", Array, "analysis a stock with trading line info") do |s|
+      opts.on("-n", "--analyze-trending [sh|sz_CODE],[TradingLineStartDate],[TradingLineStartPrice],[TradingLineEndDate],[TradingLineEndPrice],[AmpLineDate],[AmpLinePrice],", Array, "analysis a stock with trading line info") do |s|
         v = code_parser.call(s[0])
         market = v[0]
         code = v[1]
