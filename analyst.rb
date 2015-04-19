@@ -23,6 +23,10 @@ class StockAnalyst
                                    stock.history, startDate, startPrice,
                                    endDate, endPrice,
                                    ampDate, ampPrice)
-    stock.updateTrendingInfo(calcBeginDate, calcBeginPrice, dayPriceDiff, trendingAmp)
+    if not calcBeginDate.nil?
+      stock.updateTrendingInfo(calcBeginDate, calcBeginPrice, dayPriceDiff, trendingAmp)
+    else
+      puts "date error"
+    end
   end
 end

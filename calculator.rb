@@ -94,7 +94,7 @@ class TrendingCalculator
     priceDiff = endLinePrice - begLinePrice
     tDays = stockHistory.getTradingDays(begLineDate, endLineDate)
     if tDays < 1
-      return false
+      return nil
     end
     tDiff = priceDiff / (tDays - 1)
     begDiffDate = endLineDate

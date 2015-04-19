@@ -44,7 +44,8 @@ class StockHistory
     if begStr >= endStr
       return 0
     end
-    if @dates[0] > begStr or  @dates[-1] < endStr
+    if @dates[0] > begStr
+      #or  @dates[-1] < endStr #yesterday maybe not a trending
       return -1
     end
 
