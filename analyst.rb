@@ -10,7 +10,7 @@ class StockAnalyst
     begDate = dates[0]
     endDate =  Date.today.prev_day
     records = YahooHistory.getStatus(stock, begDate, endDate)
-    stock.updateHistory(StockHistory.new(records))
+    stock.updateHistory(StockHistory.new(stock, records))
   end
 
   def self.analyzeTrending(stock, startDate, startPrice,

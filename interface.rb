@@ -1,7 +1,7 @@
 # coding: utf-8
 require "iconv"
 require "uri"
-require_relative "stock"
+require_relative "stock_record"
 
 class StockHistoryBase
   #http://table.finance.yahoo.com/table.csv?a=0&b=1&c=2012&d=3&e=19&f=2012&s=600000.ss
@@ -130,15 +130,4 @@ class WebInfo
     end
     return info_hash
   end
-end
-
-if $0 == __FILE__
-  stock = Stock.new("600000", "sh", 1, 100)
-  begDate = Date.new(2015, 4, 1)
-  endDate = Date.new(2015, 4, 15)
-  records = historyInterface.getStatus(stock, begDate, endDate)
-  stock_history = StockHistory.new(records)
-  begDate = Date.new(2015, 4, 3)
-  endDate = Date.new(2015, 4, 16)
-  puts stock_history.getTradingDays(begDate, endDate)
 end

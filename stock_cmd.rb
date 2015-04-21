@@ -5,6 +5,7 @@ require_relative "stock"
 require_relative "interface"
 require_relative "analyst"
 require_relative "calculator"
+require_relative "gbrc_calculator"
 
 def tint(str, type, *bool_ref)
   # type: 1=>"title",2=>"profit"

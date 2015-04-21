@@ -15,44 +15,85 @@
 #
 require "net/http"
 require "uri"
+require_relative "stock_record"
+require_relative "interface"
 
-class StockRecord
-  def initialize(date:, open:, close:, high:, low:, vol:, adj_close:)
-    @date = date
-    @open = open
-    @close = close
-    @high = high
-    @low = low
-    @vol = vol
-    @adj_close = adj_close
+class AStockMarket
+  #A股市场
+  now = Time.now
+  @@start_time = Time.new(now.year, now.mon, now.mday, 9, 30, 00)
+  @@end_time = Time.new(now.year, now.mon, now.mday, 3, 00, 00)
+
+  def self.is_now_in_trading_time?()
+    return if Time.now >= @@start_time and Time.now <= @@end_time
   end
-  attr_reader :date, :open, :close, :high, :low, :vol, :adj_close
+
+  def self.is_now_before_trading_time?()
+    return Time.now < @@start_time
+  end
+
+  def self.is_now_after_trading_time?()
+    return Time.now > @@end_time
+  end
 end
 
 class StockHistory
-  def initialize(records_list)
+  @@interface = YahooHistory
+  def initialize(stock, records_list)
+    @records = {}
+    @dates = []
+    records_list.each { |record| @dates << record.date; @records[record.date] = record }
+    @dates.sort!
+    @stock = stock
+  end
+
+  def self.build_history(stock, begin_date, end_date)
+    records = @@interface.getStatus(stock, begin_date, end_date)
+    self.new(stock, records)
+  end
+
+  def extend_history!(stock, begin_date, end_date)
+    @stock = stock
+    need_extend = false
+    begin_date < @dates[0] ? need_extend = true : begin_date = @dates[0]
+    end_date > @dates[-1] ? need_extend = true : end_date = @dates[-1]
+    return if not need_extend
+    records_list = @@interface.getStatus(stock, begin_date, end_date)
     @records = {}
     @dates = []
     records_list.each { |record| @dates << record.date; @records[record.date] = record }
     @dates.sort!
   end
 
-  def getTradingDays(beginDate, endDate)
+  def get_records_by_range(begin_date, end_date)
+    extend_history!(@stock, begin_date, end_date) if not @stock.nil?
+    @records.values.select{ |record| record.date <= end_date and record.date >= begin_date }
+  end
+
+  def get_record_by_date(date)
+    extend_history!(date, @dates[-1]) if date < @dates[0] if not @stock.nil?
+    extend_history!(@dates[0], date) if date > @dates[-1] if not @stock.nil?
+    @records[date]
+  end
+
+  def get_last_record
+    @records[@dates[-1]]
+  end
+
+  def getTradingDays(begin_date, end_date)
     count = 0
-    begStr = beginDate.strftime('%F')
-    endStr = endDate.strftime('%F')
-    if begStr >= endStr
+    if begin_date > end_date
       return 0
     end
-    if @dates[0] > begStr
+    if @dates[0] > begin_date
       #or  @dates[-1] < endStr #yesterday maybe not a trending
       return -1
     end
 
-    @dates.each do |dateStr|
-      if dateStr < begStr
+    @dates.each do |date|
+      if date < begin_date
         next
-      elsif dateStr > endStr
+      elsif date > end_date
         return count
       end
       count += 1
@@ -74,21 +115,23 @@ class Stock
 
   attr_reader :code, :market, :buy_price, :buy_quantity, :costing,
               :calc_begin_date, :calc_begin_price, :day_price_diff, :trending_amp,
-              :high_date, :gbrc_line, :last_update_date
+              :last_update_date,
               :history
 
   def encode_with coder
     instance_variables.map{|vname| coder[vname.to_s()[1..-1]] = instance_variable_get vname if vname != :@history}
   end
 
-  def hasHistory?()
-    not @history.nil?
+  def extend_history!(begin_date, end_date)
+    if not hasHistory?
+      @history = StockHistory.build_history(self, begin_date, end_date)
+    else
+      @history.extend_history!(self, begin_date, end_date)
+    end
   end
 
-  def updateGBRC(highDate, gbrcLine)
-    @high_date = highDate
-    @gbrc_line = gbrcLine
-    @last_update_date = Date.today
+  def hasHistory?()
+    not @history.nil?
   end
 
   def updateHistory(stockHistory)

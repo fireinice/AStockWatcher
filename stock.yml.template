@@ -25,3 +25,13 @@ Stocks:
   day_price_diff: 0.2009523809523809
   trending_amp: 2.2147619047619074
   calc_begin_price: 41.73
+- !ruby/object:Stock
+  code: '600718'
+  market: sh
+  buy_price: 26.15
+  buy_quantity: 1200
+  calc_begin_date: 2015-02-02
+  day_price_diff: 0.1673333333333333
+  trending_amp: 3.6159999999999997
+  calc_begin_price: 18.45
+  gbrc_line: 25.32
