@@ -283,7 +283,7 @@ if $0 == __FILE__
 
   loop do
     begin
-      infos = SinaTradingDay.get_status(cfg_file.getAllStocks)
+      infos = SinaTradingDay.get_status_batch(cfg_file.getAllStocks)
       profits = cal.getAllProfit(infos)
       system('clear') if watch
       # fmtPrintProfit(my_account.all_stock, infos, profits, !plain)

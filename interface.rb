@@ -43,7 +43,6 @@ class StockHistoryBase
 
   def self.getStatus(stock, begDate, endDate)
     url = self.getURL(stock, begDate, endDate)
-    puts url
     remote_data = self.fetchData(url)
     return nil if remote_data.nil?
     self.parseData(remote_data)
@@ -96,34 +95,34 @@ class SinaTradingDay
                   "买五量", "买五", "卖一量", "卖一", "卖二量", "卖二", "卖三量", "卖三",
                   "卖四量", "卖四", "卖五量", "卖五", "日期", "时间"]
   # http://hq.sinajs.cn/list=sz002238,sz000033
-  def self.get_url(stockList)
+  def self.get_url(stock_list)
     stock_infos = []
-    stockList.each { |stock| stock_infos << stock.market + stock.code  }
+    stock_list.each { |stock| stock_infos << stock.market + stock.code  }
     url = @@base_url + stock_infos.join(",")
   end
 
-  def self.fetch_data(stockList)
-    url = self.get_url(stockList)
+  def self.fetch_data(stock_list)
+    url = self.get_url(stock_list)
     # remote_data = @fetchAgent.get_file(url)
     remote_data = Net::HTTP.get URI.parse(url)
     remote_data = @@decoder.iconv(remote_data)
   end
 
   def self.get_status(stock)
-    remote_data = self.fetch_data([stock])
-    infos = self.parse_data(remote_data)
+    stock_list = [stock]
+    infos = self.get_status_batch(stock_list)
     return infos.values[0]
   end
 
-  def self.get_status(stock_list)
-    remote_data = self.fetch_data(stockList)
+  def self.get_status_batch(stock_list)
+    remote_data = self.fetch_data(stock_list)
     infos = self.parse_data(remote_data)
   end
 
   def self.parse_data(rdata)
     info_hash = {}
-    rdata.split("\n").each do |dataLine|
-      data_list = dataLine.split("=")
+    rdata.split("\n").each do |data_line|
+      data_list = data_line.split("=")
       code = data_list[0][/\d+/]
       info_str = data_list[1].delete("\";")
       infos = info_str.split(",")
