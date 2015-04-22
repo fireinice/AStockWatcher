@@ -22,7 +22,7 @@ class AStockMarket
   #A股市场
   now = Time.now
   @@start_time = Time.new(now.year, now.mon, now.mday, 9, 30, 00)
-  @@end_time = Time.new(now.year, now.mon, now.mday, 3, 00, 00)
+  @@end_time = Time.new(now.year, now.mon, now.mday, 15, 00, 00)
 
   def self.is_now_in_trading_time?()
     return if Time.now >= @@start_time and Time.now <= @@end_time
@@ -49,6 +49,7 @@ class StockHistory
 
   def self.build_history(stock, begin_date, end_date)
     records = @@interface.getStatus(stock, begin_date, end_date)
+    return nil if records.nil?
     self.new(stock, records)
   end
 
@@ -59,6 +60,7 @@ class StockHistory
     end_date > @dates[-1] ? need_extend = true : end_date = @dates[-1]
     return if not need_extend
     records_list = @@interface.getStatus(stock, begin_date, end_date)
+    return nil if records_list.nil?
     @records = {}
     @dates = []
     records_list.each { |record| @dates << record.date; @records[record.date] = record }
@@ -78,6 +80,11 @@ class StockHistory
 
   def get_last_record
     @records[@dates[-1]]
+  end
+
+  def is_trading_day?(date)
+    trading_day = @dates.find { |a_date| a_date == date }
+    return (not trading_day.nil?)
   end
 
   def getTradingDays(begin_date, end_date)
@@ -114,7 +121,6 @@ class Stock
   end
 
   attr_reader :code, :market, :buy_price, :buy_quantity, :costing,
-              :calc_begin_date, :calc_begin_price, :day_price_diff, :trending_amp,
               :last_update_date,
               :history
 
@@ -125,9 +131,12 @@ class Stock
   def extend_history!(begin_date, end_date)
     if not hasHistory?
       @history = StockHistory.build_history(self, begin_date, end_date)
+      return false if @history.nil?
     else
-      @history.extend_history!(self, begin_date, end_date)
+      ret = @history.extend_history!(self, begin_date, end_date)
+      return false if ret.nil?
     end
+    return true
   end
 
   def hasHistory?()
@@ -142,13 +151,6 @@ class Stock
     @buy_price = price
     @buy_quantity = quantity
     @costing = @buy_price
-  end
-
-  def updateTrendingInfo(calcBeginDate, calcBeginPrice, dayPriceDiff, trendingAmp)
-    @calc_begin_date = calcBeginDate
-    @calc_begin_price = calcBeginPrice
-    @day_price_diff = dayPriceDiff
-    @trending_amp = trendingAmp
   end
 
   def Stock.get_ref_value(market, code)

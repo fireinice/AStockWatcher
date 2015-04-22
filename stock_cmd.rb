@@ -3,9 +3,9 @@ require "optparse"
 require "yaml"
 require_relative "stock"
 require_relative "interface"
-require_relative "analyst"
 require_relative "calculator"
 require_relative "gbrc_calculator"
+require_relative "trending_calculator"
 
 def tint(str, type, *bool_ref)
   # type: 1=>"title",2=>"profit"
@@ -60,22 +60,24 @@ Or you could use argument -p to disable the colorful print effect."
       test = tint(test, 2, profit[0]>0, is_colorful)
     end
 
-    gap = TrendingCalculator.getGap(stock, infos)
+    gap = TrendingCalculator.get_gap(stock, infos)
     if gap.nil?
       test += "\t-\t-\t-\t-"
     else
-      trending_info = sprintf("\t%.2f\t%.2f\t%.2f\t%.2f", gap[0], gap[1], gap[2], gap[3])
+      trending_info = sprintf("\t%.2f\t%.2f", gap[0], gap[1])
       trending_info  = tint(trending_info, 2, gap[1] > 0, is_colorful)
-
+      test += trending_info
+      trending_info = sprintf("\t%.2f\t%.2f", gap[2], gap[3])
+      trending_info  = tint(trending_info, 2, gap[3] > 0, is_colorful)
       test += trending_info
     end
 
-    gbrc_gap = GBRCCalculator.getGap(stock, infos)
-    if gap.nil?
+    gbrc_gap = GBRCCalculator.get_gap(stock, infos)
+    if gbrc_gap.nil?
       test += "\t-\t-"
     else
-      gbrc_info = sprintf("\t%.2f\t%.2f", gap[0], gap[1])
-      gbrc_info  = tint(gbrc_info, 2, gap[1] > 0, is_colorful)
+      gbrc_info = sprintf("\t%.2f\t%.2f", gbrc_gap[0], gbrc_gap[1])
+      gbrc_info  = tint(gbrc_info, 2, gbrc_gap[1] > 0, is_colorful)
       test += gbrc_info
     end
 
@@ -109,12 +111,12 @@ class CFGController
     end
   end
 
-  def updateStockTrendingInfo(market, code, begDate, dayPriceDiff, amp)
+  def updateStockTrendingInfo(market, code, begDate, trending_line, dayPriceDiff, amp)
     stockKey = Stock.get_ref_value(market, code)
     if not @stocks.has_key?(stockKey)
       @stocks[stockKey] = Stock.new(code, market)
     end
-    @stocks[stockKey].updateTrendingInfo(begDate, dayPriceDiff, amp)
+    @stocks[stockKey].update_trending_info(begDate, trending_line, dayPriceDiff, amp)
     self.updateCFG()
   end
 
@@ -212,7 +214,7 @@ if $0 == __FILE__
         ampLineDate = Date.parse(s[5])
         ampLinePrice = s[6].to_f
         stock = cfg_file.getStock(market, code)
-        StockAnalyst.analyzeTrending(
+        TrendingCalculator.analyze_trending(
           stock, tradingLineBeginDate, tradingLineBeginPrice,
           tradingLineEndDate, tradingLineEndPrice, ampLineDate, ampLinePrice)
         cfg_file.updateStock(stock)

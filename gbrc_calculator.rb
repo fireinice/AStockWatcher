@@ -37,14 +37,12 @@ class GBRCCalculator
     stock.update_gbrc(candidate_rec.date, low)
   end
 
-  def self.getGap(stock, infos)
-    if stock.gbrc_line.nil?
-      return nil
-    end
-    curPrice = infos[stock.code][3].to_f
-    tDiff = curPrice - stock.gbrc_line
-    gapRatio = tDiff * 100 / curPrice
-    return [tDiff, gapRatio]
+  def self.get_gap(stock, infos)
+    current_price = infos[stock.code][3].to_f
+    return nil if stock.gbrc_line.nil? or current_price < 0.01
+    gap = current_price - stock.gbrc_line
+    gap_ratio = gap * 100 / current_price
+    return [stock.gbrc_line, gap_ratio]
   end
 
   def self.calc(stock)
@@ -64,4 +62,5 @@ if $0 == __FILE__
   require_relative "stock_cmd"
   cfg_file = CFGController.new("stock.yml")
   cfg_file.getAllStocks.each { |stock| GBRCCalculator.update_gbrc(stock) }
+  cfg_file.updateCFG()
 end

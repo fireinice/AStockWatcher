@@ -44,6 +44,7 @@ class StockHistoryBase
   def self.getStatus(stock, begDate, endDate)
     url = self.getURL(stock, begDate, endDate)
     remote_data = self.fetchData(url)
+    return nil if remote_data.nil?
     self.parseData(remote_data)
   end
 
