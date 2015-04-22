@@ -18,8 +18,7 @@ class TrendingCalculator
       not stock.day_price_diff or not stock.trending_amp
     end_date = Date.today
     begin_date = stock.trending_base_date
-    end_date += 1
-    return if begin_date == end_date
+    return if begin_date == end_date and not AStockMarket.is_now_after_trading_time?
     extended = stock.extend_history!(begin_date, end_date)
     return if not extended
     gap_trading_days = stock.history.getTradingDays(begin_date, end_date)
@@ -32,30 +31,25 @@ class TrendingCalculator
     end
     # if base date is not a trending day, we need to minus it
     gap_trading_days -= 1 if not stock.history.is_trading_day(stock.trending_base_date)
+    return if gap_trading_days <= 0
     trending_line = stock.trending_line + stock.day_price_diff * gap_trading_days
     stock.update_trending_info(end_date, trending_line,
                                stock.day_price_diff, stock.trending_amp)
   end
 
-  def self.updateStockHistory(stock,startDate, endDate, ampDate)
-    dates = [startDate, endDate, ampDate]
+  def self.analyze(stock, start_date, start_price,
+                   end_date, end_price, amp_date, amp_price)
+    dates = [start_date, end_date, amp_date]
     dates.sort!
-    begDate = dates[0]
-    endDate =  Date.today.prev_day
-    records = YahooHistory.getStatus(stock, begDate, endDate)
-    stock.updateHistory(StockHistory.new(stock, records))
-  end
-
-  def self.analyze_trending(stock, startDate, startPrice,
-                            endDate, endPrice, ampDate, ampPrice)
-    if not stock.hasHistory?
-      self.updateStockHistory(stock, startDate, endDate, ampDate)
-    end
+    begin_date = dates[0]
+    end_date =  Date.today.prev_day
+    stock.extend_history!(start_date, end_date)
     calcBeginDate, calcBeginPrice, dayPriceDiff, trendingAmp =
                                                  calc(
-                                                   stock.history, startDate, startPrice,
-                                                   endDate, endPrice,
-                                                   ampDate, ampPrice)
+                                                   stock,
+                                                   start_date, start_price,
+                                                   end_date, end_price,
+                                                   amp_date, amp_price)
     if not calcBeginDate.nil?
       stock.update_trending_info(calcBeginDate, calcBeginPrice, dayPriceDiff, trendingAmp)
     else

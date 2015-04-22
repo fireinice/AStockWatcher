@@ -23,17 +23,7 @@ class GBRCCalculator
     base_record = stock.history.get_record_by_date(stock.gbrc_base_date)
     candidate_rec = records[0]
     return if candidate_rec.adj_close <= base_record.adj_close
-    records = stock.history.get_records_by_range(begin_date, candidate_rec.date)
-    records.sort! { |a, b| b.date <=> a.date }
-    reverse_cnt = 2
-    low = records[0].adj_low
-    records.each do |record|
-      if record.low < low
-        reverse_cnt = reverse_cnt - 1
-        low = record.low
-      end
-      break if reverse_cnt == 0
-    end
+    low = self.calc(candidate_rec.date)
     stock.update_gbrc(candidate_rec.date, low)
   end
 
@@ -45,14 +35,35 @@ class GBRCCalculator
     return [stock.gbrc_line, gap_ratio]
   end
 
-  def self.calc(stock)
-    if stock.hasHistory?
-      history = stock.history
-    else
-      endDate = Date.today.prev_day
-      begDate = endDate - 30
-      records = YahooHistory.getStatus(stock, begDate, endDate)
-      history = StockHistory.new(stock, records)
+  def self.analyze(stock)
+    end_date = Date.today
+    end_date = end_date - 1 if not AStockMarket.is_now_after_trading_time?
+    begin_date = end_date - 45
+    success = stock.extend_history!(begin_date, end_date)
+    return if not success
+    records = stock.history.get_records_by_range(end_date - 15, end_date)
+    records.sort! { |a, b| b.adj_close <=> a.adj_close }
+    candidate_rec = records[0]
+  end
+
+  def self.calc(base_date)
+    gap = 15
+    cur_gap = gap
+    reverse_cnt = 2
+    found = false
+    loop do
+      stock.extend_history!(end_date - gap, end_date)
+      records = stock.history.get_records_by_range(end_date - gap, end_date)
+      records.sort! { |a, b| b.date <=> a.date }
+      low = records[0].adj_low
+      records.each do |record|
+        if record.adj_low < low
+          reverse_cnt -= 1
+          low = record.adj_low
+          return low if reverse_cnt == 0
+        end
+      end
+      end_date -= gap
     end
   end
 end

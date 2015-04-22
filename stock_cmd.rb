@@ -214,7 +214,7 @@ if $0 == __FILE__
         ampLineDate = Date.parse(s[5])
         ampLinePrice = s[6].to_f
         stock = cfg_file.getStock(market, code)
-        TrendingCalculator.analyze_trending(
+        TrendingCalculator.analyze(
           stock, tradingLineBeginDate, tradingLineBeginPrice,
           tradingLineEndDate, tradingLineEndPrice, ampLineDate, ampLinePrice)
         cfg_file.updateStock(stock)
@@ -224,6 +224,16 @@ if $0 == __FILE__
       opts.on("-d", "--delete-stock [sh|sz_CODE]", String, "delete a stock") do |s|
         v = code_parser.call(s)
         cfg_file.delStock(*v)
+        exit(0)
+      end
+
+      opts.on("-u", "--update-stock-info", "update all stock infos") do
+        cfg_file = CFGController.new("stock.yml")
+        cfg_file.getAllStocks.each do |stock|
+          TrendingCalculator.update_trending(stock)
+          GBRCCalculator.update_gbrc(stock)
+        end
+        cfg_file.updateCFG()
         exit(0)
       end
 
