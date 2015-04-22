@@ -23,7 +23,7 @@ class GBRCCalculator
     base_record = stock.history.get_record_by_date(stock.gbrc_base_date)
     candidate_rec = records[0]
     return if candidate_rec.adj_close <= base_record.adj_close
-    low = self.calc(candidate_rec.date)
+    low = self.calc(stock, candidate_rec.date)
     stock.update_gbrc(candidate_rec.date, low) if low > stock.gbrc_line
   end
 
@@ -44,9 +44,11 @@ class GBRCCalculator
     records = stock.history.get_records_by_range(end_date - 15, end_date)
     records.sort! { |a, b| b.adj_close <=> a.adj_close }
     candidate_rec = records[0]
+    low = calc(stock, candidate_rec.date)
+    stock.update_gbrc(candidate_rec.date, low)
   end
 
-  def self.calc(base_date)
+  def self.calc(stock, base_date)
     gap = 15
     cur_gap = gap
     reverse_cnt = 2
