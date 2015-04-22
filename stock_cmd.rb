@@ -182,7 +182,6 @@ if $0 == __FILE__
   plain = false
   stock_cfg = cfg_file.cfg
   my_account = Account.buildFromCfg(stock_cfg) #应该在参数更新后重载
-  current_status = WebInfo.new(stock_cfg["DataSouce"]["url"])
   cal = Caculator.new(my_account)
   opts = nil
   begin
@@ -284,7 +283,7 @@ if $0 == __FILE__
 
   loop do
     begin
-      infos = current_status.getStatus(cfg_file.getAllStocks)
+      infos = SinaTradingDay.get_status(cfg_file.getAllStocks)
       profits = cal.getAllProfit(infos)
       system('clear') if watch
       # fmtPrintProfit(my_account.all_stock, infos, profits, !plain)

@@ -88,40 +88,39 @@ class YahooHistory < StockHistoryBase
 end
 
 
-class WebInfo
+class SinaTradingDay
   @@decoder = Iconv.new("UTF-8//IGNORE", "GBK//IGNORE")
+  @@base_url = "http://hq.sinajs.cn/list="
   @@inter_name = ["股票名", "今开", "昨收", "报价", "最高价", "最低价", "竞买", "竞卖", "成交量",
                   "成交金额", "买一量", "买一", "买二量", "买二", "买三量", "买三", "买四量", "买四",
                   "买五量", "买五", "卖一量", "卖一", "卖二量", "卖二", "卖三量", "卖三",
                   "卖四量", "卖四", "卖五量", "卖五", "日期", "时间"]
   # http://hq.sinajs.cn/list=sz002238,sz000033
-  def initialize(base_url)
-    @base_url = base_url
-    # @fetchAgent = WWW::Mechanize.new { |agent|
-    #   agent.user_agent_alias = 'Linux Mozilla'
-    #   agent.max_history = 0
-    # }
-  end
-
-  def getURL(stockList)
+  def self.get_url(stockList)
     stock_infos = []
     stockList.each { |stock| stock_infos << stock.market + stock.code  }
-    url = @base_url + stock_infos.join(",")
+    url = @@base_url + stock_infos.join(",")
   end
 
-  def fetchData(stockList)
-    url = self.getURL(stockList)
+  def self.fetch_data(stockList)
+    url = self.get_url(stockList)
     # remote_data = @fetchAgent.get_file(url)
     remote_data = Net::HTTP.get URI.parse(url)
     remote_data = @@decoder.iconv(remote_data)
   end
 
-  def getStatus(stockList)
-    remote_data = self.fetchData(stockList)
-    infos = self.parseData(remote_data)
+  def self.get_status(stock)
+    remote_data = self.fetch_data([stock])
+    infos = self.parse_data(remote_data)
+    return infos.values[0]
   end
 
-  def parseData(rdata)
+  def self.get_status(stock_list)
+    remote_data = self.fetch_data(stockList)
+    infos = self.parse_data(remote_data)
+  end
+
+  def self.parse_data(rdata)
     info_hash = {}
     rdata.split("\n").each do |dataLine|
       data_list = dataLine.split("=")
