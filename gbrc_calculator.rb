@@ -24,7 +24,7 @@ class GBRCCalculator
     candidate_rec = records[0]
     return if candidate_rec.adj_close <= base_record.adj_close
     low = self.calc(candidate_rec.date)
-    stock.update_gbrc(candidate_rec.date, low)
+    stock.update_gbrc(candidate_rec.date, low) if low > stock.gbrc_line
   end
 
   def self.get_gap(stock, infos)
