@@ -93,8 +93,15 @@ class StockHistory
       return 0
     end
     if @dates[0] > begin_date
-      #or  @dates[-1] < endStr #yesterday maybe not a trending
+      #or  @dates[-1] < endStr #yesterday maybe not a trading
       return -1
+    end
+
+    today = Date.today
+    if end_date >= today and @dates[-1] < today
+      trading_day_infos = SinaTradingDay.get_status(@stock)
+      puts trading_day_infos[30]
+      count = 1 if Date.parse(trading_day_infos[30]) == today
     end
 
     @dates.each do |date|
