@@ -201,11 +201,12 @@ if $0 == __FILE__
       end
 
       opts.on("-g","--analyze-gbrc [sh|sz_CODE]", String, "analysis a stock with GuBi Revese Count Line") do |s|
-        v = code_parser.call(s[0])
+        v = code_parser.call(s)
         market = v[0]
         code = v[1]
         stock = cfg_file.getStock(market, code)
         GBRCCalculator.analyze(stock)
+        cfg_file.updateStock(stock)
         exit(0)
       end
 
