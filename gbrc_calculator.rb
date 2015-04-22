@@ -19,6 +19,7 @@ class GBRCCalculator
     begin_date = stock.gbrc_base_date if stock.gbrc_base_date < begin_date
     stock.extend_history!(begin_date, end_date)
     records = stock.history.get_records_by_range(stock.gbrc_base_date, end_date)
+    return if records.empty?
     records.sort! { |a, b| b.adj_close <=> a.adj_close }
     base_record = stock.history.get_record_by_date(stock.gbrc_base_date)
     candidate_rec = records[0]
@@ -53,6 +54,7 @@ class GBRCCalculator
     cur_gap = gap
     reverse_cnt = 2
     found = false
+    end_date = base_date
     loop do
       stock.extend_history!(end_date - gap, end_date)
       records = stock.history.get_records_by_range(end_date - gap, end_date)

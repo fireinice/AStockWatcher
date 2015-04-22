@@ -73,8 +73,8 @@ class StockHistory
   end
 
   def get_record_by_date(date)
-    extend_history!(date, @dates[-1]) if date < @dates[0] if not @stock.nil?
-    extend_history!(@dates[0], date) if date > @dates[-1] if not @stock.nil?
+    extend_history!(@stock, date, @dates[-1]) if date < @dates[0] if not @stock.nil?
+    extend_history!(@stock, @dates[0], date) if date > @dates[-1] if not @stock.nil?
     @records[date]
   end
 

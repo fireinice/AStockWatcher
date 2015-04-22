@@ -237,8 +237,8 @@ if $0 == __FILE__
       opts.on("-u", "--update-stock-info", "update all stock infos") do
         cfg_file = CFGController.new("stock.yml")
         cfg_file.getAllStocks.each do |stock|
-          TrendingCalculator.update_trending(stock)
           GBRCCalculator.update_gbrc(stock)
+          TrendingCalculator.update_trending(stock)
         end
         cfg_file.updateCFG()
         exit(0)

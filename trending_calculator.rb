@@ -30,7 +30,7 @@ class TrendingCalculator
       gap_trading_days += 1
     end
     # if base date is not a trending day, we need to minus it
-    gap_trading_days -= 1 if not stock.history.is_trading_day(stock.trending_base_date)
+    gap_trading_days -= 1 if not stock.history.is_trading_day?(stock.trending_base_date)
     return if gap_trading_days <= 0
     trending_line = stock.trending_line + stock.day_price_diff * gap_trading_days
     stock.update_trending_info(end_date, trending_line,
