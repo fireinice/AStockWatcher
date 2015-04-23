@@ -77,9 +77,9 @@ class TrendingCalculator
     return [stock.trending_line, gap_ratio, amp, amp_ratio, amp_type]
   end
 
-  def self.calc(stockHistory, begLineDate, begLinePrice, endLineDate, endLinePrice, highLineDate, highLinePrice)
+  def self.calc(stock, begLineDate, begLinePrice, endLineDate, endLinePrice, highLineDate, highLinePrice)
     priceDiff = endLinePrice - begLinePrice
-    tDays = stockHistory.getTradingDays(begLineDate, endLineDate)
+    tDays = stock.history.getTradingDays(begLineDate, endLineDate)
     if tDays < 1
       return nil
     end
@@ -88,9 +88,9 @@ class TrendingCalculator
     begDiffPrice = endLinePrice
     case begLineDate <=> highLineDate
     when -1
-      tDays = stockHistory.getTradingDays(begLineDate, highLineDate)
+      tDays = stock.history.getTradingDays(begLineDate, highLineDate)
     when 1
-      tDays = -stockHistory.getTradingDays(highLineDate, begLineDate)
+      tDays = -stock.history.getTradingDays(highLineDate, begLineDate)
     when 0
       tDays = 1
     end
