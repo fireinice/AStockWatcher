@@ -1,7 +1,9 @@
 # coding: utf-8
 require "iconv"
 require "uri"
+require 'net/http'
 require_relative "stock_record"
+
 
 class StockHistoryBase
   #http://table.finance.yahoo.com/table.csv?a=0&b=1&c=2012&d=3&e=19&f=2012&s=600000.ss
