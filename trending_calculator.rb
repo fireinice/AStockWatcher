@@ -42,7 +42,6 @@ class TrendingCalculator
     dates = [start_date, end_date, amp_date]
     dates.sort!
     begin_date = dates[0]
-    end_date =  Date.today.prev_day
     stock.extend_history!(start_date, end_date)
     calcBeginDate, calcBeginPrice, dayPriceDiff, trendingAmp =
                                                  calc(
