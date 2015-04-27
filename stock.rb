@@ -161,6 +161,9 @@ class Stock
     @costing = @buy_price
   end
 
+  def update_day_trading_info()
+  end
+
   def Stock.get_ref_value(market, code)
     return market + code
   end

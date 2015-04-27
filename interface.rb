@@ -123,6 +123,11 @@ class SinaTradingDay
     infos = self.parse_data(remote_data)
   end
 
+  def self.update_stocks_batch(stock_list)
+    infos = self.get_status_batch(stcok_list)
+
+  end
+
   def self.parse_data(rdata)
     info_hash = {}
     rdata.split("\n").each do |data_line|
