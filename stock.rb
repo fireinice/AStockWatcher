@@ -129,6 +129,7 @@ class Stock
   end
 
   attr_reader :code, :market, :buy_price, :buy_quantity, :costing,
+              :name, :deal, :y_close, :t_open, :t_date, :t_date_str
               :last_update_date,
               :history
 
@@ -161,7 +162,15 @@ class Stock
     @costing = @buy_price
   end
 
-  def update_day_trading_info()
+  def update_day_trading_info(name:, deal:, y_close:, t_open:, date:)
+    @name = name
+    @deal = deal.to_f
+    @y_close = y_close.to_f
+    @t_open = t_open.to_f
+    if @t_date_str != date
+      @t_date_str = date
+      @t_date = Date.parse(@t_date_str)
+    end
   end
 
   def Stock.get_ref_value(market, code)
