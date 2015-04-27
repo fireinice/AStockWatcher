@@ -47,15 +47,15 @@ Or you could use argument -p to disable the colorful print effect."
   stocks.each do |stock|
     info = infos[stock.code]
     profit =  profits[stock.code]
-    if info[3].to_f < 0.01
+    if info[:deal].to_f < 0.01
       #停牌
-      test = sprintf("%s\t-\t-\t-\t-\t-\t-", info[0])
+      test = sprintf("%s\t-\t-\t-\t-\t-\t-", info[:name])
     elsif
       stock.buy_quantity.nil? or stock.buy_quantity < 1
       #未持股
-      test = sprintf("%s\t-\t-\t-\t%s\t-\t-", info[0], info[3])
+      test = sprintf("%s\t-\t-\t-\t%s\t-\t-", info[:name], info[:deal])
     else
-      test = sprintf("%s\t%.2f\t%.2f\t%d\t%.2f\t%.2f\t%.2f", info[0], stock.buy_price, stock.costing, stock.buy_quantity, info[3], profit[0], profit[1])
+      test = sprintf("%s\t%.2f\t%.2f\t%d\t%.2f\t%.2f\t%.2f", info[:name], stock.buy_price, stock.costing, stock.buy_quantity, info[:deal], profit[0], profit[1])
       total_profit += profit[0]
       test = tint(test, 2, profit[0]>0, is_colorful)
     end

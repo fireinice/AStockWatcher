@@ -58,7 +58,7 @@ class TrendingCalculator
 
 
   def self.get_gap(stock, infos)
-    current_price = infos[stock.code][3].to_f
+    current_price = infos[stock.code][:deal].to_f
     return nil if not stock.trending_base_date or current_price < 0.01
     end_date = Date.today
     end_date = end_date + 1 if AStockMarket.is_now_after_trading_time?

@@ -29,7 +29,7 @@ class GBRCCalculator
   end
 
   def self.get_gap(stock, infos)
-    current_price = infos[stock.code][3].to_f
+    current_price = infos[stock.code][:deal].to_f
     return nil if stock.gbrc_line.nil? or current_price < 0.01
     gap = current_price - stock.gbrc_line
     gap_ratio = gap * 100 / current_price

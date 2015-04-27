@@ -11,12 +11,12 @@ class Caculator
   end
 
   def getChargesForSale(cur_info, stock)
-    cur_price = cur_info[3].to_f
+    cur_price = cur_info[:deal].to_f
     cur_price * stock.buy_quantity * (@account.charges_ratio + @account.tax_ratio) * 0.01  + @account.other_charge
   end
 
   def getGrossProfit(cur_info, stock)
-    cur_price = cur_info[3].to_f
+    cur_price = cur_info[:deal].to_f
     cur_price * stock.buy_quantity - stock.sum
   end
 

@@ -96,7 +96,9 @@ class SinaTradingDay
                   "成交金额", "买一量", "买一", "买二量", "买二", "买三量", "买三", "买四量", "买四",
                   "买五量", "买五", "卖一量", "卖一", "卖二量", "卖二", "卖三量", "卖三",
                   "卖四量", "卖四", "卖五量", "卖五", "日期", "时间"]
+  @@inter_keys = %i( name t_open y_close deal high low buy sell vol turnover buy_vol1 buy1 buy_vol2 buy2 buy_vol3 buy3 buy_vol4 buy4 buy_vol5 buy5 sell_vol1 sell1 sell_vol2 sell2 sell_vol3 sell3 sell_vol4 sell4 sell_vol5 sell5 date time )
   # http://hq.sinajs.cn/list=sz002238,sz000033
+
   def self.get_url(stock_list)
     stock_infos = []
     stock_list.each { |stock| stock_infos << stock.market + stock.code  }
@@ -128,7 +130,11 @@ class SinaTradingDay
       code = data_list[0][/\d+/]
       info_str = data_list[1].delete("\";")
       infos = info_str.split(",")
-      info_hash[code] = infos
+      stock_info = {}
+      infos.each_index do |i|
+        stock_info[@@inter_keys[i]] = infos[i]
+      end
+      info_hash[code] = stock_info
     end
     return info_hash
   end
