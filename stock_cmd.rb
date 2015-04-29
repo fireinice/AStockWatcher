@@ -6,6 +6,8 @@ require_relative "interface"
 require_relative "calculator"
 require_relative "gbrc_calculator"
 require_relative "trending_calculator"
+require_relative "alert"
+require_relative "user"
 
 def tint(str, type, *bool_ref)
   # type: 1=>"title",2=>"profit"
@@ -240,6 +242,13 @@ if $0 == __FILE__
           TrendingCalculator.update_trending(stock)
         end
         cfg_file.updateCFG()
+        user = User.new(cfg_file.cfg["User"]["phone"])
+        alert_manager = AlertManager.new
+        alert_manager.clear_all_dynamic_alerts()
+        alert_manager.update_stocks_alert(user, cfg_file.getAllStocks)
+        File.open( cfg_file.cfg["Alert"]["config"], 'w' ) do |out|
+          YAML.dump(alert_manager , out )
+        end
         exit(0)
       end
 
