@@ -297,8 +297,8 @@ if $0 == __FILE__
       infos = SinaTradingDay.get_status_batch(all_stocks)
       all_stocks.each do |stock|
         stock.update_day_trading_info(infos[stock.code])
+        alert_manager.check_alert(stock)
       end
-      alert_manager.check_alert
       profits = cal.getAllProfit(infos)
       system('clear') if watch
       # fmtPrintProfit(my_account.all_stock, infos, profits, !plain)
