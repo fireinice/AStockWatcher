@@ -85,7 +85,7 @@ class AlertManager
     else
       act = "下破支撑位"
     end
-    content = "您的股票[#{stock.name}]#{act}#{alert.price},当前价格#{stock.price},#{Time.now}"
+    content = "您的股票[#{stock.name}]#{act}#{'%.02f' % alert.price},当前价格#{stock.price},#{Time.now.strftime('%F %T')}"
     SMSBao.send_to(user.phone, content)
   end
 

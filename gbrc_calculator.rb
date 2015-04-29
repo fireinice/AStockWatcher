@@ -61,7 +61,6 @@ class GBRCCalculator
       end_date -= gap
       next if records.empty? or records.nil?
       records.sort! { |a, b| b.date <=> a.date }
-      puts records[0].adj_low
       low = records[0].adj_low
       records.each do |record|
         if record.adj_low < low
