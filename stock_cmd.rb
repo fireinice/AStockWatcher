@@ -290,13 +290,19 @@ if $0 == __FILE__
     exit(0)
   end
 
+  alert_manager = YAML.load(File.open(cfg_file.cfg["Alert"]["config"]))
+  all_stocks = cfg_file.getAllStocks
   loop do
     begin
-      infos = SinaTradingDay.get_status_batch(cfg_file.getAllStocks)
+      infos = SinaTradingDay.get_status_batch(all_stocks)
+      all_stocks.each do |stock|
+        stock.update_day_trading_info(infos[stock.code])
+      end
+      alert_manager.check_alert
       profits = cal.getAllProfit(infos)
       system('clear') if watch
       # fmtPrintProfit(my_account.all_stock, infos, profits, !plain)
-      fmtPrintProfit(cfg_file.getAllStocks, infos, profits, !plain)
+      fmtPrintProfit(all_stocks, infos, profits, !plain)
       break if not watch
       sleep 5
     rescue Interrupt
