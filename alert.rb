@@ -91,21 +91,21 @@ class AlertManager
 
   def check_alert(stock)
     changed = false
-    while @rose_alerts.size() > 0
-      break if @rose_alerts[0].price > stock.deal
-      alert = @rose_alerts.pop
+    while @rose_alerts[stock].size() > 0
+      break if @rose_alerts[stock][0].price > stock.deal
+      alert = @rose_alerts[stock].pop
       trigger_alert(alert)
       alert.direction = AlertDirection.Fell
-      @fell_alerts.insert(0, alert) if alert.type == AlertType::Dynamic
+      @fell_alerts[stock].insert(0, alert) if alert.type == AlertType::Dynamic
       changed = true
     end
     return if changed
-    while @fell_alerts.size() > 0
-      break if @fell_alerts[0].price < stock.deal
-      alert = @fell_alerts.pop
+    while @fell_alerts[stock].size() > 0
+      break if @fell_alerts[stock][0].price < stock.deal
+      alert = @fell_alerts[stock].pop
       trigger_alert(alert)
       alert.direction = AlertDirection.Rose
-      @rose_alerts.insert(0, alert) if alert.type == AlertType::Dynamic
+      @rose_alerts[stock].insert(0, alert) if alert.type == AlertType::Dynamic
       changed = true
     end
   end
