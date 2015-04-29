@@ -129,7 +129,7 @@ class Stock
   end
 
   attr_reader :code, :market, :buy_price, :buy_quantity, :costing,
-              :name, :deal, :y_close, :t_open, :t_date, :t_date_str
+              :name, :deal, :y_close, :t_open, :t_date, :t_date_str,
               :last_update_date,
               :history
 
