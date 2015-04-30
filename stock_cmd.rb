@@ -231,6 +231,9 @@ if $0 == __FILE__
 
       opts.on("-d", "--delete-stock [CODE]", String, "delete a stock") do |s|
         v = code_parser.call(s)
+        alert_manager = YAML.load(File.open(cfg_file.cfg["Alert"]["config"]))
+        user = User.new(cfg_file.cfg["User"]["phone"])
+        alert_manager.remove_alerts(user, cfg_file.getStock(*v))
         cfg_file.delStock(*v)
         exit(0)
       end
@@ -296,8 +299,8 @@ if $0 == __FILE__
   loop do
     begin
       if not AStockMarket.is_now_in_trading_time? and not init
-        sleep 5      
-        next 
+        sleep 5
+        next
       end
       infos = SinaTradingDay.get_status_batch(all_stocks)
       all_stocks.each do |stock|
