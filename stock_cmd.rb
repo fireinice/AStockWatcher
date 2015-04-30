@@ -268,8 +268,11 @@ if $0 == __FILE__
       end
 
       opts.on("-l", "--list", "list all stock") do
-        cfg_file.getAllStocks.each.each do |stock|
-          puts stock.ref_value
+        all_stocks = cfg_file.getAllStocks
+        infos = SinaTradingDay.get_status_batch(all_stocks)
+        all_stocks.each do |stock|
+          stock.update_day_trading_info(infos[stock.code])
+          puts "#{stock.code} #{stock.name}"
         end
         exit(0)
       end
