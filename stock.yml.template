@@ -3,6 +3,10 @@ CommonConfig:
   charges_ratio: 0.4
   tax_ratio: 0.1
   other_charge: 1
+User:
+  phone: 18601012345
+Alert:
+  config: 'alert.yml'
 DataSouce:
   url: http://hq.sinajs.cn/list=
 Stocks:
@@ -19,19 +23,13 @@ Stocks:
   buy_quantity: 400
   costing: 7.8222499999999995
 - !ruby/object:Stock
-  code: '000423'
-  market: sz
-  calc_begin_date: 2015-04-01
-  day_price_diff: 0.2009523809523809
-  trending_amp: 2.2147619047619074
-  calc_begin_price: 41.73
-- !ruby/object:Stock
   code: '600718'
   market: sh
   buy_price: 26.15
   buy_quantity: 1200
-  calc_begin_date: 2015-02-02
   day_price_diff: 0.1673333333333333
   trending_amp: 3.6159999999999997
-  calc_begin_price: 18.45
   gbrc_line: 25.32
+  trending_base_date: 2015-04-22
+  trending_line: 26.983999999999998
+  gbrc_base_date: 2015-04-21

@@ -58,7 +58,8 @@ class GBRCCalculator
     loop do
       stock.extend_history!(end_date - gap, end_date)
       records = stock.history.get_records_by_range(end_date - gap, end_date)
-      next if records.nil?
+      end_date -= gap
+      next if records.empty? or records.nil?
       records.sort! { |a, b| b.date <=> a.date }
       low = records[0].adj_low
       records.each do |record|
@@ -68,7 +69,6 @@ class GBRCCalculator
           return low if reverse_cnt == 0
         end
       end
-      end_date -= gap
     end
   end
 end

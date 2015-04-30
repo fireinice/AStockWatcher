@@ -25,7 +25,7 @@ class AStockMarket
   @@end_time = Time.new(now.year, now.mon, now.mday, 15, 00, 00)
 
   def self.is_now_in_trading_time?()
-    return if Time.now >= @@start_time and Time.now <= @@end_time
+    return (Time.now >= @@start_time and Time.now <= @@end_time)
   end
 
   def self.is_now_before_trading_time?()
@@ -129,7 +129,7 @@ class Stock
   end
 
   attr_reader :code, :market, :buy_price, :buy_quantity, :costing,
-              :name, :deal, :y_close, :t_open, :t_date, :t_date_str
+              :name, :deal, :y_close, :t_open, :t_date, :t_date_str,
               :last_update_date,
               :history
 
@@ -162,13 +162,13 @@ class Stock
     @costing = @buy_price
   end
 
-  def update_day_trading_info(name:, deal:, y_close:, t_open:, date:)
-    @name = name
-    @deal = deal.to_f
-    @y_close = y_close.to_f
-    @t_open = t_open.to_f
-    if @t_date_str != date
-      @t_date_str = date
+  def update_day_trading_info(day_trading_hash)
+    @name = day_trading_hash[:name]
+    @deal = day_trading_hash[:deal].to_f
+    @y_close = day_trading_hash[:y_close].to_f
+    @t_open = day_trading_hash[:t_open].to_f
+    if @t_date_str != day_trading_hash[:date]
+      @t_date_str = day_trading_hash[:date]
       @t_date = Date.parse(@t_date_str)
     end
   end

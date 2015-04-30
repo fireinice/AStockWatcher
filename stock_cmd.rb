@@ -6,6 +6,8 @@ require_relative "interface"
 require_relative "calculator"
 require_relative "gbrc_calculator"
 require_relative "trending_calculator"
+require_relative "alert"
+require_relative "user"
 
 def tint(str, type, *bool_ref)
   # type: 1=>"title",2=>"profit"
@@ -186,12 +188,12 @@ if $0 == __FILE__
   opts = nil
   begin
     OptionParser.new do |opts|
-      code_parser = lambda {|s| v = []; v << s[0,2] <<  s[2..-1]; }
+      code_parser = lambda {|s| v = []; mkt = s.start_with?('6') ? 'sh' : 'sz'; v << mkt <<  s; }
       opts.banner = "Usage: #$0 [options]"
       opts.separator ""
       opts.separator "Specific options:"
 
-      opts.on("-a", "--add-stock [sh|sz_CODE],[BUY_PRICE],[BUY_QUANTITY]", Array, "Add a stock") do |s|
+      opts.on("-a", "--add-stock [CODE],[BUY_PRICE],[BUY_QUANTITY]", Array, "Add a stock") do |s|
         v = code_parser.call(s[0])
         v<< s[1].to_f
         v<< s[2].to_i
@@ -199,7 +201,7 @@ if $0 == __FILE__
         exit(0)
       end
 
-      opts.on("-g","--analyze-gbrc [sh|sz_CODE]", String, "analysis a stock with GuBi Revese Count Line") do |s|
+      opts.on("-g","--analyze-gbrc [CODE]", String, "analysis a stock with GuBi Revese Count Line") do |s|
         v = code_parser.call(s)
         market = v[0]
         code = v[1]
@@ -209,7 +211,7 @@ if $0 == __FILE__
         exit(0)
       end
 
-      opts.on("-n", "--analyze-trending [sh|sz_CODE],[TradingLineStartDate],[TradingLineStartPrice],[TradingLineEndDate],[TradingLineEndPrice],[AmpLineDate],[AmpLinePrice],", Array, "analysis a stock with trading line info") do |s|
+      opts.on("-n", "--analyze-trending [CODE],[TradingLineStartDate],[TradingLineStartPrice],[TradingLineEndDate],[TradingLineEndPrice],[AmpLineDate],[AmpLinePrice],", Array, "analysis a stock with trading line info") do |s|
         v = code_parser.call(s[0])
         market = v[0]
         code = v[1]
@@ -227,7 +229,7 @@ if $0 == __FILE__
         exit(0)
       end
 
-      opts.on("-d", "--delete-stock [sh|sz_CODE]", String, "delete a stock") do |s|
+      opts.on("-d", "--delete-stock [CODE]", String, "delete a stock") do |s|
         v = code_parser.call(s)
         cfg_file.delStock(*v)
         exit(0)
@@ -240,6 +242,13 @@ if $0 == __FILE__
           TrendingCalculator.update_trending(stock)
         end
         cfg_file.updateCFG()
+        user = User.new(cfg_file.cfg["User"]["phone"])
+        alert_manager = AlertManager.new
+        alert_manager.clear_all_dynamic_alerts()
+        alert_manager.update_stocks_alert(user, cfg_file.getAllStocks)
+        File.open( cfg_file.cfg["Alert"]["config"], 'w' ) do |out|
+          YAML.dump(alert_manager , out )
+        end
         exit(0)
       end
 
@@ -281,15 +290,27 @@ if $0 == __FILE__
     exit(0)
   end
 
+  alert_manager = YAML.load(File.open(cfg_file.cfg["Alert"]["config"]))
+  all_stocks = cfg_file.getAllStocks
+  init = true
   loop do
     begin
-      infos = SinaTradingDay.get_status_batch(cfg_file.getAllStocks)
+      if not AStockMarket.is_now_in_trading_time? and not init
+        sleep 5      
+        next 
+      end
+      infos = SinaTradingDay.get_status_batch(all_stocks)
+      all_stocks.each do |stock|
+        stock.update_day_trading_info(infos[stock.code])
+        alert_manager.check_alert(stock)
+      end
       profits = cal.getAllProfit(infos)
       system('clear') if watch
       # fmtPrintProfit(my_account.all_stock, infos, profits, !plain)
-      fmtPrintProfit(cfg_file.getAllStocks, infos, profits, !plain)
+      fmtPrintProfit(all_stocks, infos, profits, !plain)
       break if not watch
       sleep 5
+      init = false
     rescue Interrupt
       exit(0)
     end
