@@ -59,9 +59,9 @@ class AlertManager
   end
 
   def remove_alerts(user, stock)
-    ref_code = alert.stock.ref_value
-    @rose_alerts[ref_code].delete_if { |alert| alert.user == user }
-    @fell_alerts[ref_code].delete_if { |alert| alert.user == user }
+    ref_code = stock.ref_value
+    @rose_alerts[ref_code].delete_if { |alert| alert.user == user } if @rose_alerts.has_key?(ref_code)
+    @fell_alerts[ref_code].delete_if { |alert| alert.user == user } if @fell_alerts.has_key?(ref_code)
   end
 
   def update_stocks_alert(user, stock_list)
@@ -86,8 +86,8 @@ class AlertManager
   def trigger_alert(stock, alert)
     ref_code = stock.ref_value
     return if not AStockMarket.is_now_in_trading_time?
-    return if not freeze_time[ref_code].nil? and freeze_time[ref_code] > Time.now
-    freeze_time[ref_code] = Time.now
+    return if not @freeze_time[ref_code].nil? and @freeze_time[ref_code] > Time.now
+    @freeze_time[ref_code] = Time.now + @freeze_gap
     if alert.direction == AlertDirection::Rose
       act = "突破压力位"
     else
@@ -103,7 +103,7 @@ class AlertManager
     while not @rose_alerts[ref_code].nil? and @rose_alerts[ref_code].size() > 0
       break if @rose_alerts[ref_code][0].price > stock.deal
       alert = @rose_alerts[ref_code].pop
-      trigger_alert(alert)
+      trigger_alert(stock, alert)
       alert.direction = AlertDirection.Fell
       @fell_alerts[ref_code].insert(0, alert) if alert.type == AlertType::Dynamic
       changed = true
