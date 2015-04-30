@@ -25,7 +25,7 @@ class AStockMarket
   @@end_time = Time.new(now.year, now.mon, now.mday, 15, 00, 00)
 
   def self.is_now_in_trading_time?()
-    return if Time.now >= @@start_time and Time.now <= @@end_time
+    return (Time.now >= @@start_time and Time.now <= @@end_time)
   end
 
   def self.is_now_before_trading_time?()

@@ -91,7 +91,7 @@ class AlertManager
 
   def check_alert(stock)
     changed = false
-    while @rose_alerts[stock].size() > 0
+    while not @rose_alerts[stock].nil? and @rose_alerts[stock].size() > 0
       break if @rose_alerts[stock][0].price > stock.deal
       alert = @rose_alerts[stock].pop
       trigger_alert(alert)
@@ -100,7 +100,7 @@ class AlertManager
       changed = true
     end
     return if changed
-    while @fell_alerts[stock].size() > 0
+    while not @fell_alerts[stock].nil? and @fell_alerts[stock].size() > 0
       break if @fell_alerts[stock][0].price < stock.deal
       alert = @fell_alerts[stock].pop
       trigger_alert(alert)
