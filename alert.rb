@@ -57,6 +57,11 @@ class AlertManager
     end
   end
 
+  def remove_alerts(user, stock)
+    @rose_alerts[stock].delete_if { |alert| alert.user == user }
+    @fell_alerts[stock].delete_if { |alert| alert.user == user }
+  end
+
   def update_stocks_alert(user, stock_list)
     infos = @@interface.get_status_batch(stock_list)
     stock_list.each do |stock|
