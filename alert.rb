@@ -29,7 +29,7 @@ class AlertManager
   @@interface = SinaTradingDay
 
   def initialize()
-    # alsert = {stock1:[], stock2:[]}
+    # alsert = {stock_ref1:[], stock_ref2:[]}
     @rose_alerts = {}
     @fell_alerts = {}
     @freeze_time = {}
@@ -46,20 +46,22 @@ class AlertManager
   end
 
   def add_alert(alert)
+    ref_code = alert.stock.ref_value
     if alert.direction == AlertDirection::Rose
-      @rose_alerts[alert.stock] = [] if @rose_alerts[alert.stock].nil?
-      @rose_alerts[alert.stock] << alert
-      @rose_alerts[alert.stock].sort!{ |x,y| x.price <=> y.price }
+      @rose_alerts[ref_code] = [] if @rose_alerts[ref_code].nil?
+      @rose_alerts[ref_code] << alert
+      @rose_alerts[ref_code].sort!{ |x,y| x.price <=> y.price }
     else
-      @fell_alerts[alert.stock] = [] if @fell_alerts[alert.stock].nil?
-      @fell_alerts[alert.stock] << alert
-      @fell_alerts[alert.stock].sort! { |x,y| y.price <=> x.price }
+      @fell_alerts[ref_code] = [] if @fell_alerts[ref_code].nil?
+      @fell_alerts[ref_code] << alert
+      @fell_alerts[ref_code].sort! { |x,y| y.price <=> x.price }
     end
   end
 
   def remove_alerts(user, stock)
-    @rose_alerts[stock].delete_if { |alert| alert.user == user }
-    @fell_alerts[stock].delete_if { |alert| alert.user == user }
+    ref_code = alert.stock.ref_value
+    @rose_alerts[ref_code].delete_if { |alert| alert.user == user }
+    @fell_alerts[ref_code].delete_if { |alert| alert.user == user }
   end
 
   def update_stocks_alert(user, stock_list)
@@ -82,9 +84,10 @@ class AlertManager
   end
 
   def trigger_alert(stock, alert)
+    ref_code = stock.ref_value
     return if not AStockMarket.is_now_in_trading_time?
-    return if not freeze_time[alert.stock].nil? and freeze_time[alert.stock] > Time.now
-    freeze_time[alert.stock] = Time.now
+    return if not freeze_time[ref_code].nil? and freeze_time[ref_code] > Time.now
+    freeze_time[ref_code] = Time.now
     if alert.direction == AlertDirection::Rose
       act = "突破压力位"
     else
@@ -95,22 +98,23 @@ class AlertManager
   end
 
   def check_alert(stock)
+    ref_code =stock.ref_value
     changed = false
-    while not @rose_alerts[stock].nil? and @rose_alerts[stock].size() > 0
-      break if @rose_alerts[stock][0].price > stock.deal
-      alert = @rose_alerts[stock].pop
+    while not @rose_alerts[ref_code].nil? and @rose_alerts[ref_code].size() > 0
+      break if @rose_alerts[ref_code][0].price > stock.deal
+      alert = @rose_alerts[ref_code].pop
       trigger_alert(alert)
       alert.direction = AlertDirection.Fell
-      @fell_alerts[stock].insert(0, alert) if alert.type == AlertType::Dynamic
+      @fell_alerts[ref_code].insert(0, alert) if alert.type == AlertType::Dynamic
       changed = true
     end
     return if changed
-    while not @fell_alerts[stock].nil? and @fell_alerts[stock].size() > 0
-      break if @fell_alerts[stock][0].price < stock.deal
-      alert = @fell_alerts[stock].pop
+    while not @fell_alerts[ref_code].nil? and @fell_alerts[ref_code].size() > 0
+      break if @fell_alerts[ref_code][0].price < stock.deal
+      alert = @fell_alerts[ref_code].pop
       trigger_alert(alert)
       alert.direction = AlertDirection.Rose
-      @rose_alerts[stock].insert(0, alert) if alert.type == AlertType::Dynamic
+      @rose_alerts[ref_code].insert(0, alert) if alert.type == AlertType::Dynamic
       changed = true
     end
   end
