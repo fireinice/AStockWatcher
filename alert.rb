@@ -12,7 +12,7 @@ module AlertType
 end
 
 class Alert
-  def initialize(user, stock, price, type)
+  def initialize(user, stock, price, type, desc)
     return nil if not stock.deal and not stock.y_close
     @user = user
     @stock = stock
@@ -20,6 +20,7 @@ class Alert
     cur_price = stock.deal.nil?() ? stock.y_close : stock.deal
     @direction = (cur_price > price ?  AlertDirection::Fell : AlertDirection::Rose)
     @type = type
+    @desc = desc
   end
 
   attr_reader :user, :stock, :price, :direction, :type
@@ -68,13 +69,17 @@ class AlertManager
     infos = @@interface.get_status_batch(stock_list)
     stock_list.each do |stock|
       stock.update_day_trading_info(infos[stock.code])
-      if stock.gbrc_line
-        gbrc_alert = Alert.new(user, stock, stock.gbrc_line, AlertType::Dynamic)
+      if stock.class.method_defined?(:gbrc_line) and stock.gbrc_line
+        desc = "顾比倒数线"
+        gbrc_alert = Alert.new(user, stock, stock.gbrc_line, AlertType::Dynamic, desc)
         add_alert(gbrc_alert)
       end
-      if stock.trending_line
-        trending_alert = Alert.new(user, stock, stock.trending_line, AlertType::Dynamic)
+      if stock.class.method_defined?(:trending_line) and stock.trending_line
+        desc = "支撑线"
+        trending_alert = Alert.new(user, stock, stock.trending_line, AlertType::Dynamic, desc)
+        desc = "压力线"
         upper_alert = Alert.new(user, stock, stock.trending_line + stock.trending_amp, AlertType::Dynamic)
+        desc = "通道线"
         lower_alert = Alert.new(user, stock, stock.trending_line - stock.trending_amp, AlertType::Dynamic)
         add_alert(trending_alert)
         add_alert(upper_alert)
@@ -89,11 +94,16 @@ class AlertManager
     return if not @freeze_time[ref_code].nil? and @freeze_time[ref_code] > Time.now
     @freeze_time[ref_code] = Time.now + @freeze_gap
     if alert.direction == AlertDirection::Rose
-      act = "突破压力位"
+      act = "突破"
     else
-      act = "下破支撑位"
+      act = "下破"
     end
-    content = "您的股票[#{stock.name}]#{act}#{'%.02f' % alert.price},当前价格#{stock.price},#{Time.now.strftime('%F %T')}"
+    content = "您的股票[#{stock.name}]#{act}#{'%.02f' % alert.price}#{alert.desc},当前价格#{stock.price},"
+    content += "顾比倒数线#{stock.gbrc_line}," if stock.respond_to?(:gbrc_line) and stock.gbrc_line
+    if stock.respond_to?(:trending_line) and stock.trending_line
+      content += "支撑线#{stock.trending_line},压力线#{stock.trending_line + stock.trending_amp},通道线#{stock.trending_line - stock.trending_amp},"
+    end
+    content += "#{Time.now.strftime('%F %T')}"
     SMSBao.send_to(user.phone, content)
   end
 
