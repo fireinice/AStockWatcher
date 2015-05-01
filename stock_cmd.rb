@@ -296,6 +296,7 @@ if $0 == __FILE__
   alert_manager = YAML.load(File.open(cfg_file.cfg["Alert"]["config"]))
   all_stocks = cfg_file.getAllStocks
   init = true
+  File.open('pid', 'w') { |file| file.write("#{$$}") }
   loop do
     begin
       if not AStockMarket.is_now_in_trading_time? and not init

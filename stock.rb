@@ -49,7 +49,7 @@ class StockHistory
 
   def self.build_history(stock, begin_date, end_date)
     records = @@interface.getStatus(stock, begin_date, end_date)
-    return nil if records.nil?
+    return nil if records.nil? or records.empty?
     self.new(stock, records)
   end
 
