@@ -78,9 +78,13 @@ class AlertManager
         desc = "支撑线"
         trending_alert = Alert.new(user, stock, stock.trending_line, AlertType::Dynamic, desc)
         desc = "压力线"
-        upper_alert = Alert.new(user, stock, stock.trending_line + stock.trending_amp, AlertType::Dynamic)
+        upper_alert = Alert.new(user, stock, 
+                                stock.trending_line + stock.trending_amp, 
+                                AlertType::Dynamic, desc)
         desc = "通道线"
-        lower_alert = Alert.new(user, stock, stock.trending_line - stock.trending_amp, AlertType::Dynamic)
+        lower_alert = Alert.new(user, stock, 
+                                stock.trending_line - stock.trending_amp, 
+                                AlertType::Dynamic, desc)
         add_alert(trending_alert)
         add_alert(upper_alert)
         add_alert(lower_alert)
