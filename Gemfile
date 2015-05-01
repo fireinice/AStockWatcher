@@ -1,5 +1,6 @@
 source "https://rubygems.org"
 gem "iconv"
+gem "terminal-table"
 gem "colorize"
 
 group :development do
