@@ -1,6 +1,8 @@
 # coding: utf-8
 require "optparse"
 require "yaml"
+require 'terminal-table/import'
+# require 'terminal-table'
 require_relative "stock"
 require_relative "interface"
 require_relative "calculator"
@@ -17,11 +19,93 @@ def tint(str, type, *bool_ref)
     when 1
       str =str.colorize(:light_cyan)
     when 2
-      str = bool_ref[-2] ? str.colorize( :light_red ) :
-              str.colorize( :light_green )
+      str = bool_ref[-2] ? str.to_s.colorize( :light_red ) :
+              str.to_s.colorize( :light_green )
     end
   end
   return str
+end
+
+def fmtPrintProfit2(stocks, infos, profits, is_colorful)
+  if is_colorful
+    begin
+      require "rubygems"
+      require "colorize"
+    rescue LoadError
+      begin
+        require "colorize"
+      rescue LoadError
+        p "The output require colorize library support, \
+please install it manully or with gems. \
+Or you could use argument -p to disable the colorful print effect."
+        exit 1
+      end
+    end
+  end
+
+  heading = %w(股票名 买入价 保本价 数量 现价 盈利 盈利率)
+  heading += %w(趋势线 差率1 压力线 差率2) if Stock.method_defined?(:trending_line)
+  heading += %w(顾比倒数线 差率3) if Stock.method_defined?(:gbrc_line)
+  heading.map!{ |item| tint(item, 1, 0, is_colorful) }
+
+  rows = []
+  total_profit = 0
+  stocks.each do |stock|
+    row = []
+    profit = profits[stock.code]
+    row << stock.name
+    if stock.deal.nil? or stock.deal < 0.01
+      row += ['-'] * 6
+    elsif stock.buy_quantity.nil? or stock.buy_quantity < 1
+      row += ['-'] * 3
+      row += stock.deal
+      row += ['-'] * 2
+    else
+      deal_info = [stock.buy_price, stock.costing, stock.buy_quantity, stock.deal]
+      deal_info.map!{ |item| item = item.to_f.round(2).to_s }
+      row += deal_info
+      profit_info = profit.map do |item|
+        item = item.round(2)
+        tint(item, 2, profit[1]>0, is_colorful)
+      end
+      row += profit_info
+      total_profit += profit[0]
+    end
+
+    gap = TrendingCalculator.get_gap(stock, infos)
+    if gap.nil? and stock.respond_to?(:trending_line)
+      row += ['-'] * 4
+    else
+      gap_info = gap[0,4].map.with_index do |item, i|
+        item = item.round(2)
+        cond = ( i < 2 ?  gap[1]> 0 : gap[3]> 0 )
+        tint(item, 2, cond , is_colorful)
+      end
+      row += gap_info
+    end
+
+    gbrc_gap = GBRCCalculator.get_gap(stock, infos)
+    if gbrc_gap.nil? and stock.respond_to?(:gbrc_line)
+      row += ['-'] * 2
+    else
+      gap_info = gbrc_gap.map do |item|
+        item = item.round(2)
+        tint(item, 2, gbrc_gap[1] > 0, is_colorful)
+      end
+      row += gap_info
+    end
+    rows << row
+  end
+  table = Terminal::Table.new :headings => heading, :rows => rows
+  puts table
+
+  total_title = "总盈利:\t"
+  total_title = tint(total_title, 1, 0, is_colorful)
+  printf total_title
+  is_gain = total_profit > 0
+  total_profit = sprintf("%.2f", total_profit)
+  total_profit = tint(total_profit, 2, is_gain, is_colorful)
+  puts total_profit
 end
 
 def fmtPrintProfit(stocks, infos, profits, is_colorful)
@@ -314,7 +398,7 @@ if $0 == __FILE__
       profits = cal.getAllProfit(infos)
       system('clear') if watch
       # fmtPrintProfit(my_account.all_stock, infos, profits, !plain)
-      fmtPrintProfit(all_stocks, infos, profits, !plain)
+      fmtPrintProfit2(all_stocks, infos, profits, !plain)
       break if not watch
       sleep 5
       init = false
