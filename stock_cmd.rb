@@ -212,7 +212,7 @@ class CFGController
     if not @stocks.has_key?(stockKey)
       @stocks[stockKey] = Stock.new(code, market)
     end
-    @stocks[stockKey].updateBuyInfo(price, quantity)
+    @stocks[stockKey].update_buy_info!(price, quantity)
     self.updateCFG()
   end
 
@@ -243,7 +243,7 @@ class CFGController
   def addStock(market, code, price, quantity)
     stockKey = Stock.get_ref_value(market, code)
     @stocks[stockKey] = Stock.new(code, market)
-    @stocks[stockKey].updateBuyInfo(price, quantity)
+    @stocks[stockKey].update_buy_info!(price, quantity)
     self.updateCFG()
   end
 
@@ -356,7 +356,7 @@ if $0 == __FILE__
         all_stocks = cfg_file.getAllStocks
         infos = SinaTradingDay.get_status_batch(all_stocks)
         all_stocks.each do |stock|
-          stock.update_day_trading_info(infos[stock.code])
+          stock.update_day_trading_info!(infos[stock.code])
           puts "#{stock.code} #{stock.name}"
         end
         exit(0)
@@ -393,7 +393,7 @@ if $0 == __FILE__
       end
       infos = SinaTradingDay.get_status_batch(all_stocks)
       all_stocks.each do |stock|
-        stock.update_day_trading_info(infos[stock.code])
+        stock.update_day_trading_info!(infos[stock.code])
         alert_manager.check_alert(stock)
       end
       profits = cal.getAllProfit(infos)

@@ -12,8 +12,11 @@ module AlertType
 end
 
 class Alert
+  def self.new(user, stock, price, type, desc)
+    (user and stock and (stock.deal or stock.y_close) and price and type) and super
+  end
+
   def initialize(user, stock, price, type, desc)
-    return nil if not stock.deal and not stock.y_close
     @user = user
     @stock = stock
     @price = price
@@ -68,7 +71,7 @@ class AlertManager
   def update_stocks_alert(user, stock_list)
     infos = @@interface.get_status_batch(stock_list)
     stock_list.each do |stock|
-      stock.update_day_trading_info(infos[stock.code])
+      stock.update_day_trading_info!(infos[stock.code])
       if stock.class.method_defined?(:gbrc_line) and stock.gbrc_line
         desc = "顾比倒数线"
         gbrc_alert = Alert.new(user, stock, stock.gbrc_line, AlertType::Dynamic, desc)

@@ -49,6 +49,8 @@ guard :rspec, cmd: "bundle exec rspec" do
   dsl = Guard::RSpec::Dsl.new(self)
 
   # Feel free to open issues for suggestions and improvements
+  watch(%r{^spec/factories/(.+)\.rb$}) { "spec" }
+  watch(%r{^(.+)\.rb$}) { |m| "spec/#{m[1]}_spec.rb"}
 
   # RSpec files
   rspec = dsl.rspec

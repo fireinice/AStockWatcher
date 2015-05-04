@@ -156,21 +156,26 @@ class Stock
     @history = stockHistory
   end
 
-  def updateBuyInfo(price, quantity)
+  def update_buy_info!(price, quantity)
     @buy_price = price
     @buy_quantity = quantity
     @costing = @buy_price
+    self
   end
 
-  def update_day_trading_info(day_trading_hash)
+  def update_day_trading_info!(day_trading_hash)
     @name = day_trading_hash[:name]
     @deal = day_trading_hash[:deal].to_f
+    @deal = nil if @deal < 0.01
     @y_close = day_trading_hash[:y_close].to_f
+    @y_close = nil if @y_close < 0.01
     @t_open = day_trading_hash[:t_open].to_f
+    @t_open = nil if @t_open < 0.01
     if @t_date_str != day_trading_hash[:date]
       @t_date_str = day_trading_hash[:date]
       @t_date = Date.parse(@t_date_str)
     end
+    self
   end
 
   def Stock.get_ref_value(market, code)
@@ -180,7 +185,7 @@ class Stock
   def Stock.initFromHash(info_hash)
     stock = Stock.new(info_hash["code"], info_hash["market"])
     if info_hash["buy_quantity"]
-      stock.updateBuyInfo(info_hash["buy_price"], info_hash["buy_quantity"])
+      stock.update_buy_info!(info_hash["buy_price"], info_hash["buy_quantity"])
     end
     return stock
   end
