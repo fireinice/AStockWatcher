@@ -1,8 +1,8 @@
 # coding: utf-8
 FactoryGirl.define do
   factory :stock do
-    code 000001
-    market sh
+    code "000001"
+    market "sh"
     buy_price 12.34
     buy_quantity 1000
     deal 13.45
@@ -12,6 +12,8 @@ FactoryGirl.define do
       deal nil
       y_close nil
     end
+
+    initialize_with { new(code, market) }
   end
 
   # factory :post do

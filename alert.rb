@@ -23,7 +23,7 @@ class Alert
     @desc = desc
   end
 
-  attr_reader :user, :stock, :price, :direction, :type
+  attr_reader :user, :stock, :price, :direction, :type, :desc
 end
 
 class AlertManager
@@ -78,12 +78,12 @@ class AlertManager
         desc = "支撑线"
         trending_alert = Alert.new(user, stock, stock.trending_line, AlertType::Dynamic, desc)
         desc = "压力线"
-        upper_alert = Alert.new(user, stock, 
-                                stock.trending_line + stock.trending_amp, 
+        upper_alert = Alert.new(user, stock,
+                                stock.trending_line + stock.trending_amp,
                                 AlertType::Dynamic, desc)
         desc = "通道线"
-        lower_alert = Alert.new(user, stock, 
-                                stock.trending_line - stock.trending_amp, 
+        lower_alert = Alert.new(user, stock,
+                                stock.trending_line - stock.trending_amp,
                                 AlertType::Dynamic, desc)
         add_alert(trending_alert)
         add_alert(upper_alert)

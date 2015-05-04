@@ -1,5 +1,8 @@
 # coding: utf-8
+require_relative "support/factory_girl"
 require_relative "../alert"
+
+FactoryGirl.find_definitions
 describe Alert do
   it "should return nil if no deal info" do
     stock = FactoryGirl.build(:stock_no_deal)

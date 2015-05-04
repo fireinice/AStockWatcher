@@ -58,7 +58,7 @@ Or you could use argument -p to disable the colorful print effect."
       row += ['-'] * 6
     elsif stock.buy_quantity.nil? or stock.buy_quantity < 1
       row += ['-'] * 3
-      row += stock.deal
+      row += [stock.deal]
       row += ['-'] * 2
     else
       deal_info = [stock.buy_price, stock.costing, stock.buy_quantity, stock.deal]
@@ -97,6 +97,7 @@ Or you could use argument -p to disable the colorful print effect."
     rows << row
   end
   table = Terminal::Table.new :headings => heading, :rows => rows
+  system('clear')
   puts table
 
   total_title = "总盈利:\t"
@@ -396,7 +397,7 @@ if $0 == __FILE__
         alert_manager.check_alert(stock)
       end
       profits = cal.getAllProfit(infos)
-      system('clear') if watch
+      # system('clear') if watch
       # fmtPrintProfit(my_account.all_stock, infos, profits, !plain)
       fmtPrintProfit2(all_stocks, infos, profits, !plain)
       break if not watch
