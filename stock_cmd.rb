@@ -381,7 +381,8 @@ if $0 == __FILE__
     exit(0)
   end
 
-  alert_manager = YAML.load(File.open(cfg_file.cfg["Alert"]["config"]))
+  alert_manager = AlertManager.load_alerts(
+    File.open(cfg_file.cfg["Alert"]["config"]))
   all_stocks = cfg_file.getAllStocks
   init = true
   File.open('pid', 'w') { |file| file.write("#{$$}") }

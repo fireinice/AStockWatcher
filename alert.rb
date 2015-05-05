@@ -1,6 +1,9 @@
 # coding: utf-8
+require "yaml"
+
 require_relative "smsbao"
 require_relative "stock"
+
 module AlertDirection
   Rose = 1
   Fell = -1
@@ -32,6 +35,18 @@ end
 
 class AlertManager
   @@interface = SinaTradingDay
+  @@yml_filename = "alert.yml"
+
+  def self.load_alerts(alerts_yml)
+    @@yml_filename = alerts_yml
+    return YAML.load(File.open(filename))
+  end
+
+  def dump_alerts()
+    File.open( @@yml_filename, 'w' ) do |out|
+      YAML.dump(self, out)
+    end
+  end
 
   def initialize()
     # alsert = {stock_ref1:[], stock_ref2:[]}
@@ -123,6 +138,7 @@ class AlertManager
       alert = @rose_alerts[ref_code].pop
       trigger_alert(stock, alert)
       alert.direction = AlertDirection::Fell
+      @fell_alerts[ref_code] = [] if not @fell_alerts[ref_code]
       @fell_alerts[ref_code].insert(0, alert) if alert.type == AlertType::Dynamic
       changed = true
     end
@@ -132,8 +148,10 @@ class AlertManager
       alert = @fell_alerts[ref_code].pop
       trigger_alert(stock,alert)
       alert.direction = AlertDirection::Rose
+      @rose_alerts[ref_code] = [] if not @rose_alerts[ref_code]
       @rose_alerts[ref_code].insert(0, alert) if alert.type == AlertType::Dynamic
       changed = true
     end
+    self.dump_alerts() if changed
   end
 end
