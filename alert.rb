@@ -121,10 +121,10 @@ class AlertManager
     else
       act = "下破"
     end
-    content = "您的股票[#{stock.name}]#{act}#{'%.02f' % alert.price}#{alert.desc},当前价格#{'%.02f' % stock.deal},"
-    content += "顾比倒数线#{'%.02f' % stock.gbrc_line}," if stock.respond_to?(:gbrc_line) and stock.gbrc_line
+    content = "您的股票[#{stock.name}]#{act}#{alert.price.round(2)}#{alert.desc},当前价格#{'%.02f' % stock.deal},"
+    content += "顾比倒数线#{stock.gbrc_line.round(2)}," if stock.respond_to?(:gbrc_line) and stock.gbrc_line
     if stock.respond_to?(:trending_line) and stock.trending_line
-      content += "支撑线#{'%.02f' % stock.trending_line},压力线#{ '%.02f' % (stock.trending_line + stock.trending_amp)},通道线#{'%.02f' % (stock.trending_line - stock.trending_amp)},"
+      content += "支撑线#{stock.trending_line.round(2)},压力线#{ (stock.trending_line + stock.trending_amp).round(2)},通道线#{(stock.trending_line - stock.trending_amp).round(2)},"
     end
     content += "#{Time.now.strftime('%F %T')}"
     SMSBao.send_to(alert.user.phone, content)
