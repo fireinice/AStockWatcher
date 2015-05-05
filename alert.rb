@@ -105,13 +105,13 @@ class AlertManager
     else
       act = "下破"
     end
-    content = "您的股票[#{stock.name}]#{act}#{'%.02f' % alert.price}#{alert.desc},当前价格#{stock.price},"
+    content = "您的股票[#{stock.name}]#{act}#{'%.02f' % alert.price}#{alert.desc},当前价格#{stock.deal},"
     content += "顾比倒数线#{stock.gbrc_line}," if stock.respond_to?(:gbrc_line) and stock.gbrc_line
     if stock.respond_to?(:trending_line) and stock.trending_line
       content += "支撑线#{stock.trending_line},压力线#{stock.trending_line + stock.trending_amp},通道线#{stock.trending_line - stock.trending_amp},"
     end
     content += "#{Time.now.strftime('%F %T')}"
-    SMSBao.send_to(user.phone, content)
+    SMSBao.send_to(alert.user.phone, content)
   end
 
   def check_alert(stock)
@@ -129,7 +129,7 @@ class AlertManager
     while not @fell_alerts[ref_code].nil? and @fell_alerts[ref_code].size() > 0
       break if @fell_alerts[ref_code][0].price < stock.deal
       alert = @fell_alerts[ref_code].pop
-      trigger_alert(alert)
+      trigger_alert(stock,alert)
       alert.direction = AlertDirection.Rose
       @rose_alerts[ref_code].insert(0, alert) if alert.type == AlertType::Dynamic
       changed = true
