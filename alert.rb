@@ -89,7 +89,7 @@ class AlertManager
     stock_list.each do |stock|
       stock.update_day_trading_info!(infos[stock.code])
       if stock.class.method_defined?(:gbrc_line) and stock.gbrc_line
-        desc = "顾比倒数线"
+        desc = "顾比线"
         gbrc_alert = Alert.new(user, stock, stock.gbrc_line, AlertType::Dynamic, desc)
         add_alert(gbrc_alert)
       end
@@ -121,12 +121,12 @@ class AlertManager
     else
       act = "下破"
     end
-    content = "您的股票[#{stock.name}]#{act}#{alert.price.round(2)}#{alert.desc},当前价格#{'%.02f' % stock.deal},"
-    content += "顾比倒数线#{stock.gbrc_line.round(2)}," if stock.respond_to?(:gbrc_line) and stock.gbrc_line
+    content = "#{stock.name}#{act}#{alert.price.round(2)}#{alert.desc},价格#{'stock.deal.round(2)},"
+    content += "顾比线#{stock.gbrc_line.round(2)}," if stock.respond_to?(:gbrc_line) and stock.gbrc_line
     if stock.respond_to?(:trending_line) and stock.trending_line
       content += "支撑线#{stock.trending_line.round(2)},压力线#{ (stock.trending_line + stock.trending_amp).round(2)},通道线#{(stock.trending_line - stock.trending_amp).round(2)},"
     end
-    content += "#{Time.now.strftime('%F %T')}"
+    content += "#{Time.now.strftime('%T')}"
     SMSBao.send_to(alert.user.phone, content)
   end
 
