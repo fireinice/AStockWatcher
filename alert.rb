@@ -39,7 +39,7 @@ class AlertManager
 
   def self.load_alerts(alerts_yml)
     @@yml_filename = alerts_yml
-    return YAML.load(File.open(filename))
+    return YAML.load(File.open(@@yml_filename))
   end
 
   def dump_alerts()
