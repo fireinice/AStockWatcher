@@ -121,7 +121,7 @@ class AlertManager
     else
       act = "下破"
     end
-    content = "#{stock.name}#{act}#{alert.price.round(2)}#{alert.desc},价格#{'stock.deal.round(2)},"
+    content = "#{stock.name}#{act}#{alert.price.round(2)}#{alert.desc},价格#{stock.deal.round(2)},"
     content += "顾比线#{stock.gbrc_line.round(2)}," if stock.respond_to?(:gbrc_line) and stock.gbrc_line
     if stock.respond_to?(:trending_line) and stock.trending_line
       content += "支撑线#{stock.trending_line.round(2)},压力线#{ (stock.trending_line + stock.trending_amp).round(2)},通道线#{(stock.trending_line - stock.trending_amp).round(2)},"
