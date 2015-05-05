@@ -27,6 +27,7 @@ class Alert
   end
 
   attr_reader :user, :stock, :price, :direction, :type, :desc
+  attr_writer :direction
 end
 
 class AlertManager
@@ -105,10 +106,10 @@ class AlertManager
     else
       act = "下破"
     end
-    content = "您的股票[#{stock.name}]#{act}#{'%.02f' % alert.price}#{alert.desc},当前价格#{stock.deal},"
-    content += "顾比倒数线#{stock.gbrc_line}," if stock.respond_to?(:gbrc_line) and stock.gbrc_line
+    content = "您的股票[#{stock.name}]#{act}#{'%.02f' % alert.price}#{alert.desc},当前价格#{'%.02f' % stock.deal},"
+    content += "顾比倒数线#{'%.02f' % stock.gbrc_line}," if stock.respond_to?(:gbrc_line) and stock.gbrc_line
     if stock.respond_to?(:trending_line) and stock.trending_line
-      content += "支撑线#{stock.trending_line},压力线#{stock.trending_line + stock.trending_amp},通道线#{stock.trending_line - stock.trending_amp},"
+      content += "支撑线#{'%.02f' % stock.trending_line},压力线#{ '%.02f' % (stock.trending_line + stock.trending_amp)},通道线#{'%.02f' % (stock.trending_line - stock.trending_amp)},"
     end
     content += "#{Time.now.strftime('%F %T')}"
     SMSBao.send_to(alert.user.phone, content)
@@ -121,7 +122,7 @@ class AlertManager
       break if @rose_alerts[ref_code][0].price > stock.deal
       alert = @rose_alerts[ref_code].pop
       trigger_alert(stock, alert)
-      alert.direction = AlertDirection.Fell
+      alert.direction = AlertDirection::Fell
       @fell_alerts[ref_code].insert(0, alert) if alert.type == AlertType::Dynamic
       changed = true
     end
@@ -130,7 +131,7 @@ class AlertManager
       break if @fell_alerts[ref_code][0].price < stock.deal
       alert = @fell_alerts[ref_code].pop
       trigger_alert(stock,alert)
-      alert.direction = AlertDirection.Rose
+      alert.direction = AlertDirection::Rose
       @rose_alerts[ref_code].insert(0, alert) if alert.type == AlertType::Dynamic
       changed = true
     end
