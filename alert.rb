@@ -126,7 +126,7 @@ class AlertManager
     if stock.respond_to?(:trending_line) and stock.trending_line
       content += "支撑线#{stock.trending_line.round(2)},压力线#{ (stock.trending_line + stock.trending_amp).round(2)},通道线#{(stock.trending_line - stock.trending_amp).round(2)},"
     end
-    content += "#{Time.now.strftime('%T')}"
+    content += Time.now.strftime('%T')
     SMSBao.send_to(alert.user.phone, content)
   end
 
