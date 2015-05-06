@@ -70,11 +70,11 @@ class AlertManager
     if alert.direction == AlertDirection::Rose
       @rose_alerts[ref_code] = [] if @rose_alerts[ref_code].nil?
       @rose_alerts[ref_code] << alert
-      @rose_alerts[ref_code].sort!{ |x,y| x.price <=> y.price }
+      @rose_alerts[ref_code].sort!{ |x,y| y.price <=> x.price }
     else
       @fell_alerts[ref_code] = [] if @fell_alerts[ref_code].nil?
       @fell_alerts[ref_code] << alert
-      @fell_alerts[ref_code].sort! { |x,y| y.price <=> x.price }
+      @fell_alerts[ref_code].sort! { |x,y| x.price <=> y.price }
     end
   end
 
@@ -122,11 +122,11 @@ class AlertManager
       act = "下破"
     end
     content = "#{stock.name}#{act}#{alert.price.round(2)}#{alert.desc},价格#{stock.deal.round(2)},"
-    content += "顾比线#{stock.gbrc_line.round(2)}," if stock.respond_to?(:gbrc_line) and stock.gbrc_line
+    content += "顾比#{stock.gbrc_line.round(2)}," if stock.respond_to?(:gbrc_line) and stock.gbrc_line
     if stock.respond_to?(:trending_line) and stock.trending_line
-      content += "支撑线#{stock.trending_line.round(2)},压力线#{ (stock.trending_line + stock.trending_amp).round(2)},通道线#{(stock.trending_line - stock.trending_amp).round(2)},"
+      content += "支撑#{stock.trending_line.round(2)},压力#{ (stock.trending_line + stock.trending_amp).round(2)},通道#{(stock.trending_line - stock.trending_amp).round(2)},"
     end
-    content += Time.now.strftime('%T')
+    content += Time.now.strftime('%R')
     SMSBao.send_to(alert.user.phone, content)
   end
 
@@ -134,22 +134,22 @@ class AlertManager
     ref_code =stock.ref_value
     changed = false
     while not @rose_alerts[ref_code].nil? and @rose_alerts[ref_code].size() > 0
-      break if @rose_alerts[ref_code][0].price > stock.deal
+      break if @rose_alerts[ref_code][0].price >= stock.deal
       alert = @rose_alerts[ref_code].pop
       trigger_alert(stock, alert)
       alert.direction = AlertDirection::Fell
       @fell_alerts[ref_code] = [] if not @fell_alerts[ref_code]
-      @fell_alerts[ref_code].insert(0, alert) if alert.type == AlertType::Dynamic
+      @fell_alerts[ref_code].push(alert) if alert.type == AlertType::Dynamic
       changed = true
     end
     return if changed
     while not @fell_alerts[ref_code].nil? and @fell_alerts[ref_code].size() > 0
-      break if @fell_alerts[ref_code][0].price < stock.deal
+      break if @fell_alerts[ref_code][0].price <= stock.deal
       alert = @fell_alerts[ref_code].pop
       trigger_alert(stock,alert)
       alert.direction = AlertDirection::Rose
       @rose_alerts[ref_code] = [] if not @rose_alerts[ref_code]
-      @rose_alerts[ref_code].insert(0, alert) if alert.type == AlertType::Dynamic
+      @rose_alerts[ref_code].push(alert) if alert.type == AlertType::Dynamic
       changed = true
     end
     self.dump_alerts() if changed
