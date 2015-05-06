@@ -66,6 +66,7 @@ class AlertManager
   end
 
   def add_alert(alert)
+    return nil if alert.nil?
     ref_code = alert.stock.ref_value
     if alert.direction == AlertDirection::Rose
       @rose_alerts[ref_code] = [] if @rose_alerts[ref_code].nil?
@@ -115,6 +116,7 @@ class AlertManager
     ref_code = stock.ref_value
     return if not AStockMarket.is_now_in_trading_time?
     return if not @freeze_time[ref_code].nil? and @freeze_time[ref_code] > Time.now
+    puts @freeze_gap
     @freeze_time[ref_code] = Time.now + @freeze_gap
     if alert.direction == AlertDirection::Rose
       act = "突破"
