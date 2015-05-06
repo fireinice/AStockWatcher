@@ -1,8 +1,13 @@
 # coding: utf-8
 FactoryGirl.define do
   factory :stock do
-    code "000001"
+    code "600001"
     market "sh"
+
+    factory :stocka do
+      code "000001"
+      market "sz"
+    end
 
     factory :stock_with_day_info, :class => 'stock' do
       name "股票名"

@@ -49,40 +49,37 @@ class AlertManager
   end
 
   def initialize()
-    # alsert = {stock_ref1:[], stock_ref2:[]}
-    @rose_alerts = {}
-    @fell_alerts = {}
+    # alerts = {stock_ref1#direction:[], stock_ref2#direction:[]}
+    @alerts = {}
     @freeze_time = {}
     @freeze_gap = 2 * 60 # 2 mins
+    @freeze_gap_watched = 60 * 60 * 4 # 4 hours
   end
 
+  attr_reader :freeze_gap
+
   def clear_all_dynamic_alerts
-    @rose_alerts.values.each do |alerts_list|
-      alerts_list.delete_if { |alert| alert.type == AlertType::Dynamic }
-    end
-    @fell_alerts.values.each do |alerts_list|
+    @alerts.values.each do |alerts_list|
       alerts_list.delete_if { |alert| alert.type == AlertType::Dynamic }
     end
   end
 
   def add_alert(alert)
     return nil if alert.nil?
-    ref_code = alert.stock.ref_value
+    alerts = get_alerts(alert)
+    alerts << alert
     if alert.direction == AlertDirection::Rose
-      @rose_alerts[ref_code] = [] if @rose_alerts[ref_code].nil?
-      @rose_alerts[ref_code] << alert
-      @rose_alerts[ref_code].sort!{ |x,y| y.price <=> x.price }
+      alerts.sort!{ |x,y| y.price <=> x.price }
     else
-      @fell_alerts[ref_code] = [] if @fell_alerts[ref_code].nil?
-      @fell_alerts[ref_code] << alert
-      @fell_alerts[ref_code].sort! { |x,y| x.price <=> y.price }
+      alerts.sort! { |x,y| x.price <=> y.price }
     end
   end
 
   def remove_alerts(user, stock)
-    ref_code = stock.ref_value
-    @rose_alerts[ref_code].delete_if { |alert| alert.user == user } if @rose_alerts.has_key?(ref_code)
-    @fell_alerts[ref_code].delete_if { |alert| alert.user == user } if @fell_alerts.has_key?(ref_code)
+    get_all_alerts(stock).each do |alerts|
+      next if alerts.nil?
+      alerts.delete_if { |alert| alert.user == user }
+    end
   end
 
   def update_stocks_alert(user, stock_list)
@@ -113,11 +110,8 @@ class AlertManager
   end
 
   def trigger_alert(stock, alert)
-    ref_code = stock.ref_value
     return if not AStockMarket.is_now_in_trading_time?
-    return if not @freeze_time[ref_code].nil? and @freeze_time[ref_code] > Time.now
-    puts @freeze_gap
-    @freeze_time[ref_code] = Time.now + @freeze_gap
+    return if alert_freeze?(stock, alert)
     if alert.direction == AlertDirection::Rose
       act = "突破"
     else
@@ -132,28 +126,50 @@ class AlertManager
     SMSBao.send_to(alert.user.phone, content)
   end
 
+
   def check_alert(stock)
-    ref_code =stock.ref_value
+    price_triggered = lambda {|alert, stock|
+      (stock.deal <=> alert.price) * alert.direction > 0 }
+    direction_switcher = lambda { |alert|
+      alert.direction = (AlertDirection::Fell == alert.direction)? AlertDirection::Rose : AlertDirection::Fell }
     changed = false
-    while not @rose_alerts[ref_code].nil? and @rose_alerts[ref_code].size() > 0
-      break if @rose_alerts[ref_code][0].price >= stock.deal
-      alert = @rose_alerts[ref_code].pop
-      trigger_alert(stock, alert)
-      alert.direction = AlertDirection::Fell
-      @fell_alerts[ref_code] = [] if not @fell_alerts[ref_code]
-      @fell_alerts[ref_code].push(alert) if alert.type == AlertType::Dynamic
-      changed = true
+
+    get_all_alerts(stock).each do |alerts|
+      next if alerts.nil? or alerts.empty?
+      loop do
+        break if not price_triggered.call(alerts[-1], stock)
+        changed = true
+        alert = alerts.pop
+        trigger_alert(stock, alert)
+        direction_switcher.call(alert)
+        get_alerts(alert).push(alert) if alert.type == AlertType::Dynamic
+        break if alerts.empty?
+      end
+      self.dump_alerts() and return if changed
     end
-    return if changed
-    while not @fell_alerts[ref_code].nil? and @fell_alerts[ref_code].size() > 0
-      break if @fell_alerts[ref_code][0].price <= stock.deal
-      alert = @fell_alerts[ref_code].pop
-      trigger_alert(stock,alert)
-      alert.direction = AlertDirection::Rose
-      @rose_alerts[ref_code] = [] if not @rose_alerts[ref_code]
-      @rose_alerts[ref_code].push(alert) if alert.type == AlertType::Dynamic
-      changed = true
-    end
-    self.dump_alerts() if changed
   end
+
+
+  def alert_freeze?(stock, alert)
+    ref_code = alert.stock.ref_value + alert.user.phone
+    freeze_gap = (stock.buy_quantity.to_f > 0) ? @freeze_gap: @freeze_gap_watched
+    if @freeze_time[ref_code].nil? or Time.now > @freeze_time[ref_code]
+      @freeze_time[ref_code] = Time.now + freeze_gap
+      return false
+    end
+    return true
+  end
+
+  def get_all_alerts(stock)
+    rose_ref_code = "#{stock.ref_value}##{AlertDirection::Rose}"
+    fell_ref_code = "#{stock.ref_value}##{AlertDirection::Fell}"
+    return @alerts[rose_ref_code], @alerts[fell_ref_code]
+  end
+
+  def get_alerts(alert)
+    ref_code = "#{alert.stock.ref_value}##{alert.direction}"
+    @alerts[ref_code] = [] if @alerts[ref_code].nil?
+    @alerts[ref_code]
+  end
+  private :alert_freeze?, :get_alerts, :get_all_alerts
 end
