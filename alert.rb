@@ -151,7 +151,7 @@ class AlertManager
 
 
   def alert_freeze?(stock, alert)
-    ref_code = alert.stock.ref_value + alert.user.phone
+    ref_code = alert.stock.ref_value + alert.user.phone.to_s
     freeze_gap = (stock.buy_quantity.to_f > 0) ? @freeze_gap: @freeze_gap_watched
     if @freeze_time[ref_code].nil? or Time.now > @freeze_time[ref_code]
       @freeze_time[ref_code] = Time.now + freeze_gap

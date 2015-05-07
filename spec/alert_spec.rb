@@ -218,6 +218,13 @@ describe "stock alert" do
       expect(content =~ /rose_two/).not_to be_nil
     end
 
+    it "should direct return if stock deal is nil" do
+      allow(SMSBao).to receive(:send_to) {|u,c| content = c}
+      @alert_manager.add_alert(@rose_alert)
+      @alert_manager.check_alert(@stock)
+      expect(SMSBao).not_to have_received(:send_to)
+    end
+
     context "trigger alert" do
       it "should block much more time if the stock not buyed" do
         allow(SMSBao).to receive(:send_to) {|u,c| content = c}
