@@ -45,16 +45,18 @@ class CalcTrendingHelper
     def initialize
       @segs = 0
       @points = 0
+      @belows = 0
       @score = 0
     end
 
-    attr_accessor :segs, :points, :score
+    attr_accessor :segs, :points, :score, :belows
 
     def plus!(other)
       if not other.nil?
         self.score += other.score
         self.segs += other.segs
         self.points += other.points
+        self.belows += other.belows
       end
       self
     end
@@ -69,6 +71,7 @@ class CalcTrendingHelper
         s.score = self.score + other.score
         s.segs = self.segs + other.segs
         s.points = self.points + s.points
+        s.belows = self.belows + s.belows
       end
       s
     end
@@ -86,6 +89,12 @@ class CalcTrendingHelper
       self
     end
 
+    def minus_below_score!(date)
+      @score -= 0.5 * self.date_score(date)
+      @belows += 1
+      self
+    end
+
     def add_seg_score!(date)
       @score += 1 * self.date_score(date)
       @segs += 1
@@ -95,6 +104,7 @@ class CalcTrendingHelper
 
   class DaySegments
     def initialize(record, trading_days)
+      @record = record
       @point_delta = record.adj_low * 0.001
       @days_gap = trading_days
       @date = record.date
@@ -122,6 +132,7 @@ class CalcTrendingHelper
     def score(line)
       point = line.get_point(self.index)
       s = Score.new()
+      s.minus_below_score!(@date) if @record.adj_close < point
 
       @point_segs.each do |seg|
         return s.add_point_score!(@date) if seg.cover?(point)
@@ -131,7 +142,7 @@ class CalcTrendingHelper
         return s.add_seg_score!(@date) if seg.cover?(point)
       end
 
-      return nil
+      return s
     end
   end
 
@@ -242,6 +253,7 @@ class CalcTrendingHelper
     base_price = stock.history.get_last_record.adj_close
     # skip if line above price now more than 5% or below than 5%
     accept_range =Range.new(base_price * 0.95, base_price * 1.05)
+
     lines.each do |line|
       next if not accept_range.cover?(line.get_point(0))
       score = @calc_day_infos.reduce(Score.new) { |memo, info| memo.plus!(info.score(line)) }
@@ -280,9 +292,8 @@ class CalcTrendingHelper
     end
 
     support_lines = calc_support_lines(low_increment_lines, stock)
-
-    calc_end =  support_lines.size > 10 ? 10 : -1
-    calc_range = (0..calc_end)
+    calc_end =  support_lines.size > 10 ? 10 : support_lines.size
+    calc_range = (0...calc_end)
 
     pressure_lines = calc_pressure_lines(support_lines[calc_range])
 
@@ -306,7 +317,8 @@ class CalcTrendingHelper
       pg = (p_line.get_point(s_line.index) - s_line.base) * 100 / s_line.base
       puts "压力线: #{pd}, #{pl}"
       puts "日差:#{s_line.diff.round(2)} , 回归差：#{tg.round(2)}%, 压力差: #{pg.round(2)}%"
-      puts "支撑分数: #{sscore.score.round(2)}, 支撑点数: #{sscore.points}, 支撑线数：#{sscore.segs}"
+      puts "支撑分数: #{sscore.score.round(2)}, 支撑点数: #{sscore.points}, 支撑线数：#{sscore.segs}, 跌破比例：#{sscore.belows}/#{@calc_day_infos.size}"
+      # puts s_line.index, s_line.base, s_line.diff, s_line.v_index, s_line.v_point
       puts "--------"
     end
   end
