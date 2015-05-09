@@ -279,8 +279,10 @@ class CalcTrendingHelper
       end
     end
 
-    calc_range = (0..10)
     support_lines = calc_support_lines(low_increment_lines, stock)
+
+    calc_end =  support_lines.size > 10 ? 10 : -1
+    calc_range = (0..calc_end)
 
     pressure_lines = calc_pressure_lines(support_lines[calc_range])
 
