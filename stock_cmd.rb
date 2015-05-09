@@ -365,7 +365,6 @@ if $0 == __FILE__
       opts.on("-s", "--scan",  "scan all stocks") do
         stocks = StockList.get_status()
         stocks.each_key.with_index do |ref, i|
-          break if i > 10
           market = ref[0..1]
           code = ref[2..-1]
           stock = Stock.new(code, market)

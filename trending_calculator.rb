@@ -285,6 +285,7 @@ class CalcTrendingHelper
     pressure_lines = calc_pressure_lines(support_lines[calc_range])
 
     stock.update_trading!()
+    puts "============"
     puts "#{stock.name}, #{stock.code}"
 
     for i in calc_range
@@ -295,17 +296,17 @@ class CalcTrendingHelper
       sd2 = stock.history.get_record_by_reverse_gap_days(s_line.v_index).date
       sl2 = s_line.v_point
       puts "支撑线: #{sd1}, #{sl1}, #{sd2}. #{sl2}"
+      tg = (stock.history.get_last_record.adj_close - s_line.get_point(-1)) * 100/ s_line.get_point(-1)
 
       p_line = pressure_lines[i][0]
       pd = stock.history.get_record_by_reverse_gap_days(p_line.index).date
       pl = p_line.base
       pg = (p_line.get_point(s_line.index) - s_line.base) * 100 / s_line.base
       puts "压力线: #{pd}, #{pl}"
-      puts "日差:#{s_line.diff.round(2)} , 压力差: #{pg.round(2)}% "
+      puts "日差:#{s_line.diff.round(2)} , 回归差：#{tg.round(2)}%, 压力差: #{pg.round(2)}%"
       puts "支撑分数: #{sscore.score.round(2)}, 支撑点数: #{sscore.points}, 支撑线数：#{sscore.segs}"
       puts "--------"
     end
-    puts "============\n"
   end
 end
 
