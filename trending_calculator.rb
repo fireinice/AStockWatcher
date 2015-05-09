@@ -12,7 +12,315 @@ class Stock
   end
 end
 
+class IndexLine
+  def initialize(index, base, diff)
+    @index = index
+    @base = base
+    @diff = diff
+  end
+
+  def self.init_with_points(index1, point1, index2, point2)
+    diff = (point2 - point1) / (index2 - index1)
+    line = IndexLine.new(index1, point1, diff)
+    line.v_index = index2
+    line.v_point = point2
+    line
+  end
+
+  attr_reader :index, :base, :diff
+  attr_accessor :v_index, :v_point
+
+  def get_diff(index)
+    @diff * (index - @index)
+  end
+
+  def get_point(index)
+    @base + get_diff(index)
+  end
+end
+
+
+class CalcTrendingHelper
+  class Score
+    def initialize
+      @segs = 0
+      @points = 0
+      @score = 0
+    end
+
+    attr_accessor :segs, :points, :score
+
+    def plus!(other)
+      if not other.nil?
+        self.score += other.score
+        self.segs += other.segs
+        self.points += other.points
+      end
+      self
+    end
+
+    def <=>(other)
+      self.score <=> other.score
+    end
+
+    def +(other)
+      s = Score.new
+      if not other.nil?
+        s.score = self.score + other.score
+        s.segs = self.segs + other.segs
+        s.points = self.points + s.points
+      end
+      s
+    end
+
+    def date_score(date)
+      days = (Date.today - date)
+      months = days / 30
+      #1, 2-3, 4-5, 6
+      1.0 / ((months + 1).div(2) + 1)
+    end
+
+    def add_point_score!(date)
+      @score += 2 * self.date_score(date)
+      @points += 1
+      self
+    end
+
+    def add_seg_score!(date)
+      @score += 1 * self.date_score(date)
+      @segs += 1
+      self
+    end
+  end
+
+  class DaySegments
+    def initialize(record, trading_days)
+      @point_delta = record.adj_low * 0.001
+      @days_gap = trading_days
+      @date = record.date
+      info = []
+      info << record.adj_open
+      info << record.adj_close
+      info << record.adj_high
+      info << record.adj_low
+      info.sort!
+      @low1, @low2, @high1, @high2 = info
+      @point_segs = []
+      info.each { |point| @point_segs << Range.new(point-@point_delta, point+@point_delta) }
+      @segs = []
+      @segs << Range.new(@low1, @low2)
+      @segs << Range.new(@high1, @high2)
+    end
+
+    attr_reader :date, :low1, :low2, :high1, :high2, :days_gap, :point_delta
+
+    def index
+      # days_gap is a reverse count so we reverse again here
+      -@days_gap
+    end
+
+    def score(line)
+      point = line.get_point(self.index)
+      s = Score.new()
+
+      @point_segs.each do |seg|
+        return s.add_point_score!(@date) if seg.cover?(point)
+      end
+
+      @segs.each do |seg|
+        return s.add_seg_score!(@date) if seg.cover?(point)
+      end
+
+      return nil
+    end
+  end
+
+  def initialize(stock)
+    @calc_day_infos = []
+    total_trading_days = stock.history.records.size
+    stock.history.records.each.with_index do |record, index|
+      @calc_day_infos << DaySegments.new(record, total_trading_days - index)
+    end
+  end
+
+  def self.calc_trending_lines(seg1, seg2, type)
+    segs = [seg1, seg2]
+    segs.sort!{ |x,y| x.date <=> y.date }
+    prev, back = segs
+    days = prev.days_gap - back.days_gap
+    lines = []
+    case type
+    when :high
+      lines << IndexLine.init_with_points(
+        prev.index, prev.high1, back.index, back.high1)
+      lines << IndexLine.init_with_points(
+        prev.index, prev.high1, back.index, back.high2)
+      lines << IndexLine.init_with_points(
+        prev.index, prev.high2, back.index, back.high1)
+      lines << IndexLine.init_with_points(
+        prev.index, prev.high2, back.index, back.high2)
+    when :low
+      lines << IndexLine.init_with_points(
+        prev.index, prev.low1, back.index, back.low1)
+      lines << IndexLine.init_with_points(
+        prev.index, prev.low1, back.index, back.low2)
+      lines << IndexLine.init_with_points(
+        prev.index, prev.low2, back.index, back.low1)
+      lines << IndexLine.init_with_points(
+        prev.index, prev.low2, back.index, back.low2)
+    end
+    lines.uniq
+  end
+  def calc_pressure_lines(support_lines)
+    lines = []
+    support_lines.each do |line, score|
+      high_score = 0
+      high_line = nil
+      #{point:[seg1, seg2], point2[seg3]....}
+      point_hash = {}
+      points = []
+      pt_tmp = []
+      point_delta = line.base * 0.002
+      @calc_day_infos.each do |day_segs|
+        diff = line.get_diff(day_segs.index)
+        day_points = []
+        day_points << day_segs.high1 - diff
+        day_points << day_segs.high2 - diff
+        # puts "date:#{day_segs.date}, diff:#{diff}, day_points:#{day_points}, high1:#{day_segs.high1}, high2:#{day_segs.high2}"
+        day_points.each do |pt|
+          next if pt < line.base * 1.05
+          point_hash[pt] = [] if point_hash[pt].nil?
+          point_hash[pt] << day_segs
+          pt_tmp << pt
+          points << pt
+        end
+        points.sort!
+        pt_tmp.sort!
+      end
+      base_score = 0
+      points.reverse_each do |pt|
+        while pt_tmp[-1] > pt + point_delta
+          tpt = pt_tmp.pop
+          base_score -= point_hash[tpt].size * 0.5
+        end
+        score = base_score
+        # score = 0
+        pt_tmp.reverse_each do |tpt|
+          break if tpt < pt - point_delta
+          score += point_hash[tpt].size
+        end
+        # puts pt
+        seg_value = point_hash[pt][0]
+        high_line, high_score =
+                   IndexLine.new(seg_value.index, pt + line.get_diff(seg_value.index), line.diff),score if score > high_score
+      end
+      lines << [high_line, high_score]
+    end
+
+    # high_score = Score.new
+    # support_lines.each do |line, score|
+    #   @calc_day_infos.each do |day_segs|
+    #     candis = []
+    #     candis << IndexLine.new(day_segs.index, day_segs.high1, line.diff)
+    #     candis << IndexLine.new(day_segs.index, day_segs.high2, line.diff)
+    #     candis.each do |candi|
+    #       # skip if pressure line gap is less than 5%
+    #       next if candi.get_point(line.index) <= line.base * 1.05
+    #       score = @calc_day_infos.reduce(Score.new) { |memo, info| memo.plus!(info.score(line)) }
+    #       # puts score.class
+    #       high_line, high_score = candi, score if score.score > high_score.score
+    #       lines << [high_line, high_score]
+    #     end
+    #   end
+    # end
+    return lines
+  end
+
+
+  def calc_support_lines(lines, stock)
+    scores = []
+    base_price = stock.history.get_last_record.adj_close
+    # skip if line above price now more than 5% or below than 5%
+    accept_range =Range.new(base_price * 0.95, base_price * 1.05)
+    lines.each do |line|
+      next if not accept_range.cover?(line.get_point(0))
+      score = @calc_day_infos.reduce(Score.new) { |memo, info| memo.plus!(info.score(line)) }
+      # skip if the line across only 2 points and less than 5 segs
+      next if score.points < 3 and score.segs < 5
+      scores << [line, score]
+    end
+    scores.sort!{ |x,y| y[1].score <=> x[1].score}
+    # scores[0,10].each do |score|
+    #   puts "========"
+    #   puts score[1].score
+    #   puts score[1].segs
+    #   puts score[1].points
+    #   puts score[0].base
+    #   puts score[0].v_point
+    #   puts stock.history.get_record_by_reverse_gap_days(score[0].index).date
+    #   puts stock.history.get_record_by_reverse_gap_days(score[0].v_index).date
+    #   puts score[0].index
+    #   puts score[0].v_index
+    # end
+
+    return scores
+  end
+
+  def calc(stock)
+    high_increment_lines = []
+    low_increment_lines = []
+    @calc_day_infos.each.with_index do |prev, i|
+      @calc_day_infos[(i+1)..-1].each do |back|
+        # we only calc increment by now
+        # CalcTrendingHelper.calc_trending_lines(prev, back, :high).each {
+        #   |line| high_increment_lines << line if line.diff > 0}
+        CalcTrendingHelper.calc_trending_lines(prev, back, :low).each {
+          |line| low_increment_lines << line if line.diff > 0}
+      end
+    end
+
+    calc_range = (0..10)
+    support_lines = calc_support_lines(low_increment_lines, stock)
+
+    pressure_lines = calc_pressure_lines(support_lines[calc_range])
+
+    stock.update_trading!()
+    puts "#{stock.name}, #{stock.code}"
+
+    for i in calc_range
+      s_line = support_lines[i][0]
+      sscore = support_lines[i][1]
+      sd1 = stock.history.get_record_by_reverse_gap_days(s_line.index).date
+      sl1 = s_line.base
+      sd2 = stock.history.get_record_by_reverse_gap_days(s_line.v_index).date
+      sl2 = s_line.v_point
+      puts "支撑线: #{sd1}, #{sl1}, #{sd2}. #{sl2}"
+
+      p_line = pressure_lines[i][0]
+      pd = stock.history.get_record_by_reverse_gap_days(p_line.index).date
+      pl = p_line.base
+      pg = (p_line.get_point(s_line.index) - s_line.base) * 100 / s_line.base
+      puts "压力线: #{pd}, #{pl}"
+      puts "日差:#{s_line.diff.round(2)} , 压力差: #{pg.round(2)}% "
+      puts "支撑分数: #{sscore.score.round(2)}, 支撑点数: #{sscore.points}, 支撑线数：#{sscore.segs}"
+      puts "--------"
+    end
+    puts "============\n"
+  end
+end
+
 class TrendingCalculator
+  def self.calc_trending(stock)
+    end_date = Date.today
+    begin_date = end_date - 30 * 6 # 6 months
+    extended = stock.extend_history!(begin_date, end_date)
+    return if not extended
+    helper = CalcTrendingHelper.new(stock)
+    helper.calc(stock)
+    #[[point_range1, point_range2,
+  end
+
+
   def self.update_trending(stock)
     return if not stock.trending_base_date or not stock.trending_line or
       not stock.day_price_diff or not stock.trending_amp

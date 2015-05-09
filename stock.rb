@@ -47,8 +47,16 @@ class StockHistory
     @stock = stock
   end
 
+  def records
+    records = []
+    @dates.each do |date|
+      records << @records[date] if  not @records[date].nil?
+    end
+    return records
+  end
+
   def self.build_history(stock, begin_date, end_date)
-    records = @@interface.getStatus(stock, begin_date, end_date)
+    records = @@interface.get_status(stock, begin_date, end_date)
     return nil if records.nil? or records.empty?
     self.new(stock, records)
   end
@@ -59,7 +67,7 @@ class StockHistory
     begin_date < @dates[0] ? need_extend = true : begin_date = @dates[0]
     end_date > @dates[-1] ? need_extend = true : end_date = @dates[-1]
     return if not need_extend
-    records_list = @@interface.getStatus(stock, begin_date, end_date)
+    records_list = @@interface.get_status(stock, begin_date, end_date)
     return nil if records_list.nil?
     @records = {}
     @dates = []
@@ -70,6 +78,10 @@ class StockHistory
   def get_records_by_range(begin_date, end_date)
     extend_history!(@stock, begin_date, end_date) if not @stock.nil?
     @records.values.select{ |record| record.date <= end_date and record.date >= begin_date }
+  end
+
+  def get_record_by_reverse_gap_days gap_days
+    @records[@dates[gap_days]]
   end
 
   def get_record_by_date(date)
@@ -161,6 +173,11 @@ class Stock
     @buy_quantity = quantity
     @costing = @buy_price
     self
+  end
+
+  def update_trading!()
+    info = SinaTradingDay.get_status(self)
+    self.update_day_trading_info!(info)
   end
 
   def update_day_trading_info!(day_trading_hash)

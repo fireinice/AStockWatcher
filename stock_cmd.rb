@@ -362,6 +362,18 @@ if $0 == __FILE__
         exit(0)
       end
 
+      opts.on("-s", "--scan",  "scan all stocks") do
+        stocks = StockList.get_status()
+        stocks.each_key.with_index do |ref, i|
+          break if i > 10
+          market = ref[0..2]
+          code = ref[2..-1]
+          stock = Stock.new(code, market)
+          TrendingCalculator.calc_trending(stock)
+        end
+        exit(0)
+      end
+
 
       opts.on("-w", "--[no-]watch",  "open watch mode") do |s|
         watch = s

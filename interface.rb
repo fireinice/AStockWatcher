@@ -2,8 +2,35 @@
 require "iconv"
 require "uri"
 require 'net/http'
+require 'json'
 require_relative "stock_record"
 
+class WebInterface
+  def self.fetch_data(url)
+    uri = URI.parse(url)
+    http = Net::HTTP.new(uri.host)
+    http.open_timeout = 5
+    res = Net::HTTP.get_response(uri)
+    remote_data = res.body if res.is_a?(Net::HTTPSuccess)
+  end
+end
+
+class StockList < WebInterface
+  #http://ctxalgo.com/api
+  @@base_url = "http://ctxalgo.com/api/stocks"
+
+  def self.get_status()
+    url = @@base_url
+    remote_data = self.fetch_data(url)
+    return nil if remote_data.nil?
+    self.parse_data(remote_data)
+  end
+
+  def self.parse_data(rdata)
+    stocks = JSON.parse(rdata)
+    return stocks
+  end
+end
 
 class StockHistoryBase
   #http://table.finance.yahoo.com/table.csv?a=0&b=1&c=2012&d=3&e=19&f=2012&s=600000.ss
@@ -18,7 +45,7 @@ class StockHistoryBase
   #   # }
   # end
 
-  def self.getURL(stock, beginDate, endDate)
+  def self.get_url(stock, beginDate, endDate)
     market = stock.market
     if stock.market == 'sh'
       market = 'ss'
@@ -35,7 +62,7 @@ class StockHistoryBase
     url = @@base_url + "?" + URI.encode_www_form(infos)
   end
 
-  def self.fetchData(url)
+  def self.fetch_data(url)
     uri = URI.parse(url)
     http = Net::HTTP.new(uri.host)
     http.open_timeout = 5
@@ -43,14 +70,14 @@ class StockHistoryBase
     remote_data = res.body if res.is_a?(Net::HTTPSuccess)
   end
 
-  def self.getStatus(stock, begDate, endDate)
-    url = self.getURL(stock, begDate, endDate)
-    remote_data = self.fetchData(url)
+  def self.get_status(stock, begDate, endDate)
+    url = self.get_url(stock, begDate, endDate)
+    remote_data = self.fetch_data(url)
     return nil if remote_data.nil?
-    self.parseData(remote_data)
+    self.parse_data(remote_data)
   end
 
-  def self.parseData(rdata)
+  def self.parse_data(rdata)
     records = []
     first = true
     rdata.split("\n").each do |dataLine|
@@ -78,7 +105,7 @@ end
 
 class IFengHistory < StockHistoryBase
   @@base_url = "http://api.finance.ifeng.com/akdaily/?code=%s&type=last"
-  def self.getURL(stock, beginDate, endDate)
+  def self.get_url(stock, beginDate, endDate)
     stockName = stock.market+stock.code
     url = sprintf(@@base_url, stockName)
   end
