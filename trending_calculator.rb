@@ -223,7 +223,7 @@ class CalcTrendingHelper
         # puts pt
         seg_value = point_hash[pt][0]
         high_line, high_score =
-                   IndexLine.new(seg_value.index, pt + line.get_diff(seg_value.index), line.diff),score if score > high_score
+                   IndexLine.new(seg_value.index, pt + line.get_diff(seg_value.index), line.diff),score if score >= high_score
       end
       lines << [high_line, high_score]
     end
@@ -255,10 +255,10 @@ class CalcTrendingHelper
     accept_range =Range.new(base_price * 0.95, base_price * 1.05)
 
     lines.each do |line|
-      next if not accept_range.cover?(line.get_point(0))
+      next if not accept_range.cover?(line.get_point(-1))
       score = @calc_day_infos.reduce(Score.new) { |memo, info| memo.plus!(info.score(line)) }
       # skip if the line across only 2 points and less than 5 segs
-      next if score.points < 3 and score.segs < 5
+      next if score.points < 10 and score.segs < 15
       scores << [line, score]
     end
     scores.sort!{ |x,y| y[1].score <=> x[1].score}
@@ -298,6 +298,7 @@ class CalcTrendingHelper
     pressure_lines = calc_pressure_lines(support_lines[calc_range])
 
     stock.update_trading!()
+
     puts "============"
     puts "#{stock.name}, #{stock.code}"
 
@@ -321,6 +322,7 @@ class CalcTrendingHelper
       # puts s_line.index, s_line.base, s_line.diff, s_line.v_index, s_line.v_point
       puts "--------"
     end
+    return support_lines[calc_range], pressure_lines[calc_range]
   end
 end
 
@@ -331,6 +333,7 @@ class TrendingCalculator
     extended = stock.extend_history!(begin_date, end_date)
     return if not extended
     helper = CalcTrendingHelper.new(stock)
+    trending_hash = {}
     helper.calc(stock)
     #[[point_range1, point_range2,
   end

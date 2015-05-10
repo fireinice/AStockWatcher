@@ -363,12 +363,17 @@ if $0 == __FILE__
       end
 
       opts.on("-s", "--scan",  "scan all stocks") do
-        stocks = StockList.get_status()
-        stocks.each_key.with_index do |ref, i|
-          market = ref[0..1]
-          code = ref[2..-1]
-          stock = Stock.new(code, market)
-          TrendingCalculator.calc_trending(stock)
+        info_hash = {}
+        File.open( "trending_scan.yml", 'w' ) do |out|
+          stocks = StockList.get_status()
+          stocks.each_key.with_index do |ref, i|
+            market = ref[0..1]
+            code = ref[2..-1]
+            stock = Stock.new(code, market)
+            # TrendingCalculator.calc_trending(stock)
+            info_hash[stock] = TrendingCalculator.calc_trending(stock)
+            YAML.dump(info_hash , out )
+          end
         end
         exit(0)
       end
