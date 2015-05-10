@@ -296,6 +296,7 @@ class CalcTrendingHelper
     calc_range = (0...calc_end)
 
     pressure_lines = calc_pressure_lines(support_lines[calc_range])
+    return nil if support_lines.empty?
 
     stock.update_trading!()
 
@@ -322,6 +323,7 @@ class CalcTrendingHelper
       # puts s_line.index, s_line.base, s_line.diff, s_line.v_index, s_line.v_point
       puts "--------"
     end
+    puts Time.now
     return support_lines[calc_range], pressure_lines[calc_range]
   end
 end

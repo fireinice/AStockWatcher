@@ -371,7 +371,8 @@ if $0 == __FILE__
             code = ref[2..-1]
             stock = Stock.new(code, market)
             # TrendingCalculator.calc_trending(stock)
-            info_hash[stock] = TrendingCalculator.calc_trending(stock)
+            infos = TrendingCalculator.calc_trending(stock)
+            info_hash[stock] = infos if not infos.nil?
             YAML.dump(info_hash , out )
           end
         end
