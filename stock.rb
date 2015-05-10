@@ -146,7 +146,7 @@ class Stock
               :history
 
   def encode_with coder
-    instance_variables.map{|vname| coder[vname.to_s()[1..-1]] = instance_variable_get vname if vname != :@history}
+    instance_variables.map{|vname| coder[vname.to_s()[1..-1]] = instance_variable_get vname if vname != :@history and vname != :t_date_str}
   end
 
   def extend_history!(begin_date, end_date)
