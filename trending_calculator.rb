@@ -253,12 +253,13 @@ class CalcTrendingHelper
     base_price = stock.history.get_last_record.adj_close
     # skip if line above price now more than 5% or below than 5%
     accept_range =Range.new(base_price * 0.95, base_price * 1.05)
-
     lines.each do |line|
       next if not accept_range.cover?(line.get_point(-1))
       score = @calc_day_infos.reduce(Score.new) { |memo, info| memo.plus!(info.score(line)) }
       # skip if the line across only 2 points and less than 5 segs
       next if score.points < 10 and score.segs < 15
+      # skip if too many days is below the support line
+      next if score.belows > @calc_day_infos.size / 3
       scores << [line, score]
     end
     scores.sort!{ |x,y| y[1].score <=> x[1].score}
@@ -310,13 +311,14 @@ class CalcTrendingHelper
       sl1 = s_line.base
       sd2 = stock.history.get_record_by_reverse_gap_days(s_line.v_index).date
       sl2 = s_line.v_point
-      puts "支撑线: #{sd1}, #{sl1}, #{sd2}. #{sl2}"
       tg = (stock.history.get_last_record.adj_close - s_line.get_point(-1)) * 100/ s_line.get_point(-1)
-
       p_line = pressure_lines[i][0]
+      #p_line could be nil if pressure line too close to support line
+      next if p_line.nil?
       pd = stock.history.get_record_by_reverse_gap_days(p_line.index).date
       pl = p_line.base
       pg = (p_line.get_point(s_line.index) - s_line.base) * 100 / s_line.base
+      puts "支撑线: #{sd1}, #{sl1}, #{sd2}. #{sl2}"
       puts "压力线: #{pd}, #{pl}"
       puts "日差:#{s_line.diff.round(2)} , 回归差：#{tg.round(2)}%, 压力差: #{pg.round(2)}%"
       puts "支撑分数: #{sscore.score.round(2)}, 支撑点数: #{sscore.points}, 支撑线数：#{sscore.segs}, 跌破比例：#{sscore.belows}/#{@calc_day_infos.size}"

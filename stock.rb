@@ -131,13 +131,20 @@ end
 class Stock
   @@interface = SinaTradingDay
 
-  def initialize(code, market)
-    if not code or not market
+  def initialize(code, market=nil)
+    if code.nil? or code.length != 6
       raise ArgumentError, "Bad data"
     end
+    code, market = Stock.parse_code(code) if market.nil?
     @code = code
     @market = market
     @history = nil
+  end
+
+  def self.parse_code code
+    v = []
+    mkt = code.start_with?('6') ? 'sh' : 'sz'
+    return code, mkt
   end
 
   attr_reader :code, :market, :buy_price, :buy_quantity, :costing,
