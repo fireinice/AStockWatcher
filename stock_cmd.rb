@@ -286,6 +286,15 @@ if $0 == __FILE__
         exit(0)
       end
 
+      opts.on("-b", "--buy-stock [CODE],[BUY_PRICE],[BUY_QUANTITY]", Array, "Add a stock") do |s|
+        code, market = Stock.parse_code(s[0])
+        stock = cfg_file.getStock(market, code)
+        v<< s[1].to_f
+        v<< s[2].to_i
+        cfg_file.updateStock(*v)
+        exit(0)
+      end
+
       opts.on("-g","--analyze-gbrc [CODE]", String, "analysis a stock with GuBi Revese Count Line") do |s|
         v = code_parser.call(s)
         market = v[0]
