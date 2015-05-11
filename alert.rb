@@ -154,6 +154,9 @@ class AlertManager
   def alert_freeze?(stock, alert)
     ref_code = alert.stock.ref_value + alert.user.phone.to_s
     freeze_gap = (stock.buy_quantity.to_f > 0) ? @freeze_gap : @freeze_gap_watched
+
+    return true if alert.desc == "顾比线" and alert.direction == AlertDirection::Rose
+
     next_alert_time = @freeze_time[ref_code]
     next_alert_time += @freeze_rose_gap if alert.direction == AlertDirection::Rose and not next_alert_time.nil?
     if next_alert_time.nil? or Time.now > next_alert_time
