@@ -207,7 +207,7 @@ class CFGController
     self.updateCFG()
   end
 
-  def updateStockBuyInfo(market, code, price, quatity)
+  def updateStockBuyInfo(market, code, price, quantity)
     stockKey = Stock.get_ref_value(market, code)
     if not @stocks.has_key?(stockKey)
       @stocks[stockKey] = Stock.new(code, market)
@@ -288,10 +288,11 @@ if $0 == __FILE__
 
       opts.on("-b", "--buy-stock [CODE],[BUY_PRICE],[BUY_QUANTITY]", Array, "Add a stock") do |s|
         code, market = Stock.parse_code(s[0])
-        stock = cfg_file.getStock(market, code)
+        #stock = cfg_file.getStock(market, code)
+        v = []
         v<< s[1].to_f
         v<< s[2].to_i
-        cfg_file.updateStock(*v)
+        cfg_file.updateStockBuyInfo(market, code, *v)
         exit(0)
       end
 
