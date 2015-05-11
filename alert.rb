@@ -53,10 +53,11 @@ class AlertManager
     @alerts = {}
     @freeze_time = {}
     @freeze_gap = 2 * 60 # 2 mins
+    @freeze_rose_gap = 30 * 60 # 30 mins
     @freeze_gap_watched = 60 * 60 * 4 # 4 hours
   end
 
-  attr_reader :freeze_gap
+  attr_reader :freeze_gap, :freeze_rose_gap
 
   def clear_all_dynamic_alerts
     @alerts.values.each do |alerts_list|
@@ -152,8 +153,10 @@ class AlertManager
 
   def alert_freeze?(stock, alert)
     ref_code = alert.stock.ref_value + alert.user.phone.to_s
-    freeze_gap = (stock.buy_quantity.to_f > 0) ? @freeze_gap: @freeze_gap_watched
-    if @freeze_time[ref_code].nil? or Time.now > @freeze_time[ref_code]
+    freeze_gap = (stock.buy_quantity.to_f > 0) ? @freeze_gap : @freeze_gap_watched
+    next_alert_time = @freeze_time[ref_code]
+    next_alert_time += @freeze_rose_gap if alert.direction == AlertDirection::Rose and not next_alert_time.nil?
+    if next_alert_time.nil? or Time.now > next_alert_time
       @freeze_time[ref_code] = Time.now + freeze_gap
       return false
     end

@@ -209,7 +209,7 @@ describe "stock alert" do
 
       now = Time.now
       allow(Time).to receive(:now).and_return(
-                       now + @alert_manager.freeze_gap + 1)
+                       now + @alert_manager.freeze_gap + @alert_manager.freeze_rose_gap + 1)
 
       @stock_trading_info[:deal] = @rose_price + 3
       @stock.update_day_trading_info!(@stock_trading_info)
