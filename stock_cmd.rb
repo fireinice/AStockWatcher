@@ -382,10 +382,10 @@ if $0 == __FILE__
           # TrendingCalculator.calc_trending(stock)
           infos = TrendingCalculator.calc_trending(stock)
           next if infos.nil?
-          info_hash[stock] = infos
-          File.open( "trending_scan.yml", 'w' ) do |out|
-            YAML.dump(info_hash , out )
-          end
+          info_hash[stock.ref_value] = infos
+        end
+        File.open( "trending_scan.yml", 'w' ) do |out|
+          YAML.dump(info_hash , out )
         end
         exit(0)
       end
