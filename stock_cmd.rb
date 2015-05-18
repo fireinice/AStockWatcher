@@ -10,6 +10,7 @@ require_relative "gbrc_calculator"
 require_relative "trending_calculator"
 require_relative "alert"
 require_relative "user"
+require_relative "ctxalgo_inteface"
 
 def tint(str, type, *bool_ref)
   # type: 1=>"title",2=>"profit"

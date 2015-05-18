@@ -19,16 +19,19 @@ class IndexLine
     @diff = diff
   end
 
-  def self.init_with_points(index1, point1, index2, point2)
+  def self.init_with_points(index1, point1, date1, index2, point2,date2)
     diff = (point2 - point1) / (index2 - index1)
     line = IndexLine.new(index1, point1, diff)
+    line.index_date = date1
     line.v_index = index2
     line.v_point = point2
+    line.v_date = date2
     line
   end
 
+  # fixme 这里应该记录对应日期
   attr_reader :index, :base, :diff
-  attr_accessor :v_index, :v_point
+  attr_accessor :v_index, :v_point, :index_date, :v_date, :score
 
   def get_diff(index)
     @diff * (index - @index)
@@ -45,6 +48,7 @@ class CalcTrendingHelper
     def initialize
       @segs = 0
       @points = 0
+      # fixme below应该只算支撑线后部分的
       @belows = 0
       @score = 0
     end
@@ -163,25 +167,26 @@ class CalcTrendingHelper
     case type
     when :high
       lines << IndexLine.init_with_points(
-        prev.index, prev.high1, back.index, back.high1)
+        prev.index, prev.high1, prev.date, back.index, back.high1, back.date)
       lines << IndexLine.init_with_points(
-        prev.index, prev.high1, back.index, back.high2)
+        prev.index, prev.high1, prev.date, back.index, back.high2, back.date)
       lines << IndexLine.init_with_points(
-        prev.index, prev.high2, back.index, back.high1)
+        prev.index, prev.high2, prev.date, back.index, back.high1, back.date)
       lines << IndexLine.init_with_points(
-        prev.index, prev.high2, back.index, back.high2)
+        prev.index, prev.high2, prev.date, back.index, back.high2, back.date)
     when :low
       lines << IndexLine.init_with_points(
-        prev.index, prev.low1, back.index, back.low1)
+        prev.index, prev.low1, prev.date, back.index, back.low1, back.date)
       lines << IndexLine.init_with_points(
-        prev.index, prev.low1, back.index, back.low2)
+        prev.index, prev.low1, prev.date, back.index, back.low2, back.date)
       lines << IndexLine.init_with_points(
-        prev.index, prev.low2, back.index, back.low1)
+        prev.index, prev.low2, prev.date, back.index, back.low1, back.date)
       lines << IndexLine.init_with_points(
-        prev.index, prev.low2, back.index, back.low2)
+        prev.index, prev.low2, prev.date, back.index, back.low2, back.date)
     end
     lines.uniq
   end
+
   def calc_pressure_lines(support_lines)
     lines = []
     support_lines.each do |line, score|

@@ -279,7 +279,7 @@ describe "trending calculator" do
 
   it "should skip if too many days is below the support line" do
     stock = Stock.new("600438")
-    end_date = Date.today
+    end_date = Date.parse("150511")
     begin_date = end_date - 6 * 30
     allow(YahooHistory).to receive(:fetch_data).and_return(HISTORY_STR2)
     slines, plines = TrendingCalculator.calc_trending(stock)

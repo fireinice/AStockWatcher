@@ -15,22 +15,6 @@ class WebInterface
   end
 end
 
-class StockList < WebInterface
-  #http://ctxalgo.com/api
-  @@base_url = "http://ctxalgo.com/api/stocks"
-
-  def self.get_status()
-    url = @@base_url
-    remote_data = self.fetch_data(url)
-    return nil if remote_data.nil?
-    self.parse_data(remote_data)
-  end
-
-  def self.parse_data(rdata)
-    stocks = JSON.parse(rdata)
-    return stocks
-  end
-end
 
 class StockHistoryBase
   #http://table.finance.yahoo.com/table.csv?a=0&b=1&c=2012&d=3&e=19&f=2012&s=600000.ss
@@ -152,7 +136,6 @@ class SinaTradingDay
 
   def self.update_stocks_batch(stock_list)
     infos = self.get_status_batch(stcok_list)
-
   end
 
   def self.parse_data(rdata)
