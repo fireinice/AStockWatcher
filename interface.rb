@@ -147,7 +147,10 @@ class SinaTradingDay
       infos = info_str.split(",")
       stock_info = {}
       infos.each_index do |i|
-        stock_info[@@inter_keys[i]] = infos[i]
+        v = infos[i]
+        # v = v[0..-3] if @@inter_keys[i].to_s.include?("vol")
+        # v = v[0..-5] if
+        stock_info[@@inter_keys[i]] = v
       end
       info_hash[code] = stock_info
     end
