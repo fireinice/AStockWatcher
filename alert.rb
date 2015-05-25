@@ -129,6 +129,7 @@ class AlertManager
 
 
   def check_alert(stock)
+    return if stock.deal.nil? #停牌
     price_triggered = lambda {|alert, stock|
       (stock.deal <=> alert.price) * alert.direction > 0 }
     direction_switcher = lambda { |alert|
