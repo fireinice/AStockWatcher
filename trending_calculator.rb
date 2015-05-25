@@ -189,7 +189,8 @@ class CalcTrendingHelper
 
   def calc_pressure_lines(support_lines)
     lines = []
-    support_lines.each do |line, score|
+    support_lines.each do |line|
+      score = line.score
       high_score = 0
       high_line = nil
       #{point:[seg1, seg2], point2[seg3]....}
@@ -204,7 +205,8 @@ class CalcTrendingHelper
         day_points << day_segs.high2 - diff
         # puts "date:#{day_segs.date}, diff:#{diff}, day_points:#{day_points}, high1:#{day_segs.high1}, high2:#{day_segs.high2}"
         day_points.each do |pt|
-          next if pt < line.base * 1.05
+          # only search between %5 to 15%
+          next if pt < line.base * 1.05 or pt > line.base * 1.15
           point_hash[pt] = [] if point_hash[pt].nil?
           point_hash[pt] << day_segs
           pt_tmp << pt
@@ -230,7 +232,8 @@ class CalcTrendingHelper
         high_line, high_score =
                    IndexLine.new(seg_value.index, pt + line.get_diff(seg_value.index), line.diff),score if score >= high_score
       end
-      lines << [high_line, high_score]
+      high_line.score = high_score
+      lines << high_line
     end
 
     # high_score = Score.new
@@ -254,21 +257,22 @@ class CalcTrendingHelper
 
 
   def calc_support_lines(lines, stock)
-    scores = []
+    lines = []
     base_price = stock.history.get_last_record.adj_close
-    # skip if line above price now more than 5% or below than 5%
-    accept_range =Range.new(base_price * 0.95, base_price * 1.05)
+    # skip if line above price now more than 5% or below than 15%
+    accept_range =Range.new(base_price * 0.85, base_price * 1.05)
     lines.each do |line|
       next if not accept_range.cover?(line.get_point(-1))
       score = @calc_day_infos.reduce(Score.new) { |memo, info| memo.plus!(info.score(line)) }
-      # skip if the line across only 2 points and less than 5 segs
+      # skip if the line across less than 10 points and less than 15 segs
       next if score.points < 10 and score.segs < 15
       # skip if too many days is below the support line
       next if score.belows > @calc_day_infos.size / 3
-      scores << [line, score]
+      line.score = score
+      lines << line
     end
-    scores.sort!{ |x,y| y[1].score <=> x[1].score}
-    # scores[0,10].each do |score|
+    lines.sort!{ |x,y| y.score.score <=> x.score.score}
+    # lines[0,10].each do |score|
     #   puts "========"
     #   puts score[1].score
     #   puts score[1].segs
@@ -281,7 +285,7 @@ class CalcTrendingHelper
     #   puts score[0].v_index
     # end
 
-    return scores
+    return lines
   end
 
   def calc(stock)
@@ -310,14 +314,14 @@ class CalcTrendingHelper
     puts "#{stock.name}, #{stock.code}"
 
     for i in calc_range
-      s_line = support_lines[i][0]
-      sscore = support_lines[i][1]
+      s_line = support_lines[i]
+      sscore = s_line.score
       sd1 = stock.history.get_record_by_reverse_gap_days(s_line.index).date
       sl1 = s_line.base
       sd2 = stock.history.get_record_by_reverse_gap_days(s_line.v_index).date
       sl2 = s_line.v_point
       tg = (stock.history.get_last_record.adj_close - s_line.get_point(-1)) * 100/ s_line.get_point(-1)
-      p_line = pressure_lines[i][0]
+      p_line = pressure_lines[i]
       #p_line could be nil if pressure line too close to support line
       next if p_line.nil?
       pd = stock.history.get_record_by_reverse_gap_days(p_line.index).date
