@@ -206,7 +206,7 @@ class CalcTrendingHelper
         # puts "date:#{day_segs.date}, diff:#{diff}, day_points:#{day_points}, high1:#{day_segs.high1}, high2:#{day_segs.high2}"
         day_points.each do |pt|
           # only search between %5 to 15%
-          next if pt < line.base * 1.05 or pt > line.base * 1.15
+          next if pt < line.base * 1.05 or pt > line.base * 1.12
           point_hash[pt] = [] if point_hash[pt].nil?
           point_hash[pt] << day_segs
           pt_tmp << pt
@@ -258,20 +258,32 @@ class CalcTrendingHelper
 
   def calc_support_lines(candi_lines, stock)
     lines = []
+    high_points = 10
     base_price = stock.history.get_last_record.adj_close
     # skip if line above price now more than 5% or below than 15%
-    accept_range =Range.new(base_price * 0.85, base_price * 1.05)
+    accept_range =Range.new(base_price * 0.95, base_price * 1.15)
     candi_lines.each do |line|
-      next if not accept_range.cover?(line.get_point(-1))
       score = @calc_day_infos.reduce(Score.new) { |memo, info| memo.plus!(info.score(line)) }
+      next if not accept_range.cover?(line.get_point(-1)) and score.points < high_points
       # skip if the line across less than 10 points and less than 15 segs
       next if score.points < 10 and score.segs < 15
       # skip if too many days is below the support line
       next if score.belows > @calc_day_infos.size / 3
+      high_points = score.points
       line.score = score
       lines << line
     end
+
+    # next if not accept_range.cover?(line.get_point(-1)) and score.points < high_points
     lines.sort!{ |x,y| y.score.score <=> x.score.score}
+    first = true
+    lines.reject! do |line|
+      if first
+        first = false
+      else
+        not accept_range.cover?(line.get_point(-1))
+      end
+    end
     # lines[0,10].each do |score|
     #   puts "========"
     #   puts score[1].score
