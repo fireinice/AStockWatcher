@@ -256,12 +256,12 @@ class CalcTrendingHelper
   end
 
 
-  def calc_support_lines(lines, stock)
+  def calc_support_lines(candi_lines, stock)
     lines = []
     base_price = stock.history.get_last_record.adj_close
     # skip if line above price now more than 5% or below than 15%
     accept_range =Range.new(base_price * 0.85, base_price * 1.05)
-    lines.each do |line|
+    candi_lines.each do |line|
       next if not accept_range.cover?(line.get_point(-1))
       score = @calc_day_infos.reduce(Score.new) { |memo, info| memo.plus!(info.score(line)) }
       # skip if the line across less than 10 points and less than 15 segs
