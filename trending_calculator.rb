@@ -273,7 +273,6 @@ class CalcTrendingHelper
       line.score = score
       lines << line
     end
-
     # next if not accept_range.cover?(line.get_point(-1)) and score.points < high_points
     lines.sort!{ |x,y| y.score.score <=> x.score.score}
     first = true
@@ -284,6 +283,8 @@ class CalcTrendingHelper
         not accept_range.cover?(line.get_point(-1))
       end
     end
+    return [] if lines.empty?
+    return [] if lines.size < 2 and not accept_range.cover?(lines[0].get_point(-1))
     # lines[0,10].each do |score|
     #   puts "========"
     #   puts score[1].score
