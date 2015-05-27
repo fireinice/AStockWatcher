@@ -286,3 +286,13 @@ describe "trending calculator" do
     expect(slines).to be_nil
   end
 end
+
+
+
+describe "IndexLine" do
+  it "should == by the same line" do
+    a = IndexLine.new(2, 3.2, 0.2)
+    b = IndexLine.new(5, 3.8, 0.2)
+    expect(a==b).to be true
+  end
+end

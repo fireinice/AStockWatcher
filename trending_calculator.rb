@@ -29,6 +29,10 @@ class IndexLine
     line
   end
 
+  def ==(o)
+    (o.get_point(@index) - @base).round(10) == 0 and (@diff - o.diff).round(10) == 0
+  end
+
   # fixme 这里应该记录对应日期
   attr_reader :index, :base, :diff
   attr_accessor :v_index, :v_point, :index_date, :v_date, :score
