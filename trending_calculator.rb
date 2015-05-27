@@ -1,6 +1,8 @@
 # coding: utf-8
+require 'date'
 require_relative "stock"
 require_relative "interface"
+
 class Stock
   attr_reader :trending_base_date, :trending_line, :day_price_diff, :trending_amp
   def update_trending_info(trending_base_date, trending_line,
@@ -262,7 +264,10 @@ class CalcTrendingHelper
 
   def calc_support_lines(candi_lines, stock)
     lines = []
+    high_points_line = nil
     high_points = 10
+    high_score_line = nil
+    high_score = 0
     base_price = stock.history.get_last_record.adj_close
     # skip if line above price now more than 5% or below than 15%
     accept_range =Range.new(base_price * 0.95, base_price * 1.15)

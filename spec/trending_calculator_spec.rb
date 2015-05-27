@@ -269,13 +269,18 @@ Date,Open,High,Low,Close,Volume,Adj Close
 """
 
 describe "trending calculator" do
-  # it "should draw line for a stock" do
-  #   stock = Stock.new("000635", "sz")
-  #   end_date = Date.today
-  #   begin_date = end_date - 6 * 30
-  #   allow(YahooHistory).to receive(:fetch_data).and_return(HISTORY_STR)
-  #   TrendingCalculator.calc_trending(stock)
+  # it "should calc trending" do
+  #   stock = Stock.new("600000")
+  #   infos = TrendingCalculator.calc_trending(stock)
   # end
+
+  it "should draw line for a stock" do
+    stock = Stock.new("000635", "sz")
+    end_date = Date.parse("150511")
+    begin_date = end_date - 6 * 30
+    allow(YahooHistory).to receive(:fetch_data).and_return(HISTORY_STR)
+    TrendingCalculator.calc_trending(stock)
+  end
 
   it "should skip if too many days is below the support line" do
     stock = Stock.new("600438")
