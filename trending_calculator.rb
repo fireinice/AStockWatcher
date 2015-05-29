@@ -170,27 +170,23 @@ class CalcTrendingHelper
     prev, back = segs
     days = prev.days_gap - back.days_gap
     lines = []
+    prev_points = []
+    back_points = []
     case type
     when :high
-      lines << IndexLine.init_with_points(
-        prev.index, prev.high1, prev.date, back.index, back.high1, back.date)
-      lines << IndexLine.init_with_points(
-        prev.index, prev.high1, prev.date, back.index, back.high2, back.date)
-      lines << IndexLine.init_with_points(
-        prev.index, prev.high2, prev.date, back.index, back.high1, back.date)
-      lines << IndexLine.init_with_points(
-        prev.index, prev.high2, prev.date, back.index, back.high2, back.date)
+      prev_points << prev.high1
+      back_points << prev.high2 if 0 != (prev.high1 - back.high2).round(3)
     when :low
-      lines << IndexLine.init_with_points(
-        prev.index, prev.low1, prev.date, back.index, back.low1, back.date)
-      lines << IndexLine.init_with_points(
-        prev.index, prev.low1, prev.date, back.index, back.low2, back.date)
-      lines << IndexLine.init_with_points(
-        prev.index, prev.low2, prev.date, back.index, back.low1, back.date)
-      lines << IndexLine.init_with_points(
-        prev.index, prev.low2, prev.date, back.index, back.low2, back.date)
+      prev_points << prev.low1
+      back_points << prev.low2 if 0 != (prev.low1 - back.low2).round(3)
     end
-    lines.uniq
+    prev_points.each do |p|
+      back_points.each do |b|
+        lines << IndexLine.init_with_points(
+          prev.index, p, prev.date, back.index, b, back.date)
+      end
+    end
+    return lines
   end
 
   def calc_pressure_lines(support_lines)
