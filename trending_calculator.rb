@@ -196,7 +196,7 @@ class CalcTrendingHelper
   def calc_pressure_lines(support_lines)
     lines = []
     support_lines.each do |line|
-      score = line.score
+      # score = line.score
       high_score = 0
       high_line = nil
       #{point:[seg1, seg2], point2[seg3]....}
@@ -211,8 +211,8 @@ class CalcTrendingHelper
         day_points << day_segs.high2 - diff
         # puts "date:#{day_segs.date}, diff:#{diff}, day_points:#{day_points}, high1:#{day_segs.high1}, high2:#{day_segs.high2}"
         day_points.each do |pt|
-          # only search between %5 to 15%
-          next if pt < line.base * 1.05 or pt > line.base * 1.12
+          # only search between %5 to 12%
+          next if not Range.new(line.base * 1.05, line.base * 1.12).cover?(pt)
           point_hash[pt] = [] if point_hash[pt].nil?
           point_hash[pt] << day_segs
           pt_tmp << pt
@@ -235,8 +235,11 @@ class CalcTrendingHelper
         end
         # puts pt
         seg_value = point_hash[pt][0]
-        high_line, high_score =
-                   IndexLine.new(seg_value.index, pt + line.get_diff(seg_value.index), line.diff),score if score >= high_score
+        if score >= high_score
+          high_line, high_score =
+                     IndexLine.new(seg_value.index, pt + line.get_diff(seg_value.index), line.diff),score
+          high_line.index_date = seg_value.date
+        end
       end
       high_line.score = high_score
       lines << high_line
@@ -263,9 +266,10 @@ class CalcTrendingHelper
 
 
   def calc_support_lines(candi_lines, stock)
-    lines = []
+    lines = {}
+    candis = []
     high_points_line = nil
-    high_points = 10
+    high_points = 0
     high_score_line = nil
     high_score = 0
     base_price = stock.history.get_last_record.adj_close
@@ -273,41 +277,63 @@ class CalcTrendingHelper
     accept_range =Range.new(base_price * 0.95, base_price * 1.15)
     candi_lines.each do |line|
       score = @calc_day_infos.reduce(Score.new) { |memo, info| memo.plus!(info.score(line)) }
+      line.score = score
+      if score.points > high_points
+        high_points_line = line
+        high_points = score.points
+      end
+      if score.score > high_score
+        high_score_line = line
+        high_score = score.score
+      end
       next if not accept_range.cover?(line.get_point(-1)) and score.points < high_points
       # skip if the line across less than 10 points and less than 15 segs
       next if score.points < 10 and score.segs < 15
       # skip if too many days is below the support line
       next if score.belows > @calc_day_infos.size / 3
-      high_points = score.points
-      line.score = score
-      lines << line
+      candis << line
+      # break
     end
-    # next if not accept_range.cover?(line.get_point(-1)) and score.points < high_points
-    lines.sort!{ |x,y| y.score.score <=> x.score.score}
-    first = true
-    lines.reject! do |line|
-      if first
-        first = false
-      else
-        not accept_range.cover?(line.get_point(-1))
-      end
-    end
-    return [] if lines.empty?
-    return [] if lines.size < 2 and not accept_range.cover?(lines[0].get_point(-1))
-    # lines[0,10].each do |score|
-    #   puts "========"
-    #   puts score[1].score
-    #   puts score[1].segs
-    #   puts score[1].points
-    #   puts score[0].base
-    #   puts score[0].v_point
-    #   puts stock.history.get_record_by_reverse_gap_days(score[0].index).date
-    #   puts stock.history.get_record_by_reverse_gap_days(score[0].v_index).date
-    #   puts score[0].index
-    #   puts score[0].v_index
-    # end
+
+    candis.sort!{ |x,y| y.score.score <=> x.score.score}
+
+    # 截断到10个
+    calc_end =  candis.size > 10 ? 10 : candis.size
+    calc_range = (0...calc_end)
+    candis = candis[calc_range]
+    lines[:points] = high_points_line
+    lines[:score] = high_score_line if not high_score_line == high_points_line
+    lines[:candis] = candis
+    return nil if candis.empty?
 
     return lines
+  end
+
+  def print_info(stock, s_line, p_line=nil)
+    return if s_line.nil?
+    return if stock.y_close.nil?
+    sscore = s_line.score
+    sd1 = s_line.index_date
+    sl1 = s_line.base
+    sd2 = s_line.v_date
+    sl2 = s_line.v_point
+    tg = (stock.y_close - s_line.get_point(-1)) * 100/ s_line.get_point(-1)
+    #p_line could be nil if pressure line too close to support line
+    print "支撑压力线: #{sd1},#{sl1},#{sd2},#{sl2}"
+    if not p_line.nil?
+      pd = p_line.index_date
+      pl = p_line.base
+      pg = (p_line.get_point(s_line.index) - s_line.base) * 100 / s_line.base
+      puts ",#{pd},#{pl}"
+    else
+      puts ""
+    end
+
+    puts "日差:#{s_line.diff.round(2)} , 回归差：#{tg.round(2)}%"
+    puts "压力差: #{pg.round(2)}%" if not p_line.nil?
+    puts "支撑分数: #{sscore.score.round(2)}, 支撑点数: #{sscore.points}, 支撑线数：#{sscore.segs}, 跌破比例：#{sscore.belows}/#{@calc_day_infos.size}"
+    # puts s_line.index, s_line.base, s_line.diff, s_line.v_index, s_line.v_point
+    puts "--------"
   end
 
   def calc(stock)
@@ -324,40 +350,28 @@ class CalcTrendingHelper
     end
 
     support_lines = calc_support_lines(low_increment_lines, stock)
-    calc_end =  support_lines.size > 10 ? 10 : support_lines.size
-    calc_range = (0...calc_end)
+    return nil if support_lines.nil?
 
-    pressure_lines = calc_pressure_lines(support_lines[calc_range])
-    return nil if support_lines.empty?
-
+    pressure_lines = calc_pressure_lines(support_lines[:candis])
     stock.update_trading!()
 
     puts "============"
     puts "#{stock.name}, #{stock.code}"
 
-    for i in calc_range
-      s_line = support_lines[i]
-      sscore = s_line.score
-      sd1 = stock.history.get_record_by_reverse_gap_days(s_line.index).date
-      sl1 = s_line.base
-      sd2 = stock.history.get_record_by_reverse_gap_days(s_line.v_index).date
-      sl2 = s_line.v_point
-      tg = (stock.history.get_last_record.adj_close - s_line.get_point(-1)) * 100/ s_line.get_point(-1)
+    candis = support_lines[:candis]
+
+    return nil, nil if candis.empty?
+    print_info(stock, support_lines[:score])
+    print_info(stock, support_lines[:points])
+    for i in (0..candis.size()) do
+      s_line = candis[i]
       p_line = pressure_lines[i]
       #p_line could be nil if pressure line too close to support line
       next if p_line.nil?
-      pd = stock.history.get_record_by_reverse_gap_days(p_line.index).date
-      pl = p_line.base
-      pg = (p_line.get_point(s_line.index) - s_line.base) * 100 / s_line.base
-      puts "支撑线: #{sd1}, #{sl1}, #{sd2}. #{sl2}"
-      puts "压力线: #{pd}, #{pl}"
-      puts "日差:#{s_line.diff.round(2)} , 回归差：#{tg.round(2)}%, 压力差: #{pg.round(2)}%"
-      puts "支撑分数: #{sscore.score.round(2)}, 支撑点数: #{sscore.points}, 支撑线数：#{sscore.segs}, 跌破比例：#{sscore.belows}/#{@calc_day_infos.size}"
-      # puts s_line.index, s_line.base, s_line.diff, s_line.v_index, s_line.v_point
-      puts "--------"
+      print_info(stock, s_line, p_line)
     end
     puts Time.now
-    return support_lines[calc_range], pressure_lines[calc_range]
+    return support_lines, pressure_lines
   end
 end
 

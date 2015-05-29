@@ -278,7 +278,14 @@ describe "trending calculator" do
     stock = Stock.new("000635", "sz")
     end_date = Date.parse("150511")
     begin_date = end_date - 6 * 30
+    stock_hash = {}
+    stock_hash[:name] = "英力特"
+    stock_hash[:deal] = "14.05"
+    stock_hash[:y_close] = "14.56"
+    stock_hash[:t_open] = "14.00"
+    stock_hash[:date] = "2015-05-29"
     allow(YahooHistory).to receive(:fetch_data).and_return(HISTORY_STR)
+    allow(SinaTradingDay).to receive(:get_status).and_return(stock_hash)
     TrendingCalculator.calc_trending(stock)
   end
 
