@@ -1,5 +1,6 @@
 # coding: utf-8
 require 'date'
+require 'set'
 require_relative "stock"
 require_relative "interface"
 
@@ -119,20 +120,22 @@ class CalcTrendingHelper
       @days_gap = trading_days
       @date = record.date
       info = []
-      info << record.adj_open
-      info << record.adj_close
-      info << record.adj_high
-      info << record.adj_low
+      info << record.adj_open.round(2)
+      info << record.adj_close.round(2)
+      info << record.adj_high.round(2)
+      info << record.adj_low.round(2)
       info.sort!
       @low1, @low2, @high1, @high2 = info
-      @point_segs = []
-      info.each { |point| @point_segs << Range.new(point-@point_delta, point+@point_delta) }
       @segs = []
       @segs << Range.new(@low1, @low2)
       @segs << Range.new(@high1, @high2)
+
+      @point_segs = []
+      info.uniq!
+      info.each { |point| @point_segs << Range.new(point-@point_delta, point+@point_delta) }
     end
 
-    attr_reader :date, :low1, :low2, :high1, :high2, :days_gap, :point_delta
+    attr_reader :date, :low1, :low2, :high1, :high2, :days_gap, :point_delta, :record
 
     def index
       # days_gap is a reverse count so we reverse again here
@@ -164,7 +167,30 @@ class CalcTrendingHelper
     end
   end
 
-  def self.calc_trending_lines(seg1, seg2, type)
+  def in_points_blacklist?(price, date)
+    @points_blacklist.include?("#{price.round(2)}_#{date}")
+  end
+
+  def gen_points_blacklist
+    @points_blacklist = Set.new
+    all_close_points = @calc_day_infos.collect { |e| e.record.adj_close.round(2) }
+    all_close_points.sort!
+    bar = all_close_points.size / 3 + 1
+    @calc_day_infos.each do |info|
+      break if all_close_points.size <= bar
+      bar_point = all_close_points[bar]
+      [info.low1, info.low2].each do |pt|
+        @points_blacklist << "#{pt.round(2)}_#{info.date}" if pt > bar_point
+      end
+      all_close_points.slice!(all_close_points.index(info.record.adj_close.round(2)))
+    end
+    # puts "hello"
+    # @points_blacklist.each do |b|
+    #   puts b
+    # end
+  end
+
+  def calc_trending_lines(seg1, seg2, type)
     segs = [seg1, seg2]
     segs.sort!{ |x,y| x.date <=> y.date }
     prev, back = segs
@@ -181,7 +207,9 @@ class CalcTrendingHelper
       back_points << prev.low2 if 0 != (prev.low1 - back.low2).round(3)
     end
     prev_points.each do |p|
+      next if in_points_blacklist?(p, prev.date)
       back_points.each do |b|
+        next if in_points_blacklist?(b, back.date)
         lines << IndexLine.init_with_points(
           prev.index, p, prev.date, back.index, b, back.date)
       end
@@ -282,7 +310,7 @@ class CalcTrendingHelper
         high_score_line = line
         high_score = score.score
       end
-      next if not accept_range.cover?(line.get_point(-1)) and score.points < high_points
+      next if not accept_range.cover?(line.get_point(-1))
       # skip if the line across less than 10 points and less than 15 segs
       next if score.points < 10 and score.segs < 15
       # skip if too many days is below the support line
@@ -310,15 +338,15 @@ class CalcTrendingHelper
     return if stock.y_close.nil?
     sscore = s_line.score
     sd1 = s_line.index_date
-    sl1 = s_line.base
+    sl1 = s_line.base.round(2)
     sd2 = s_line.v_date
-    sl2 = s_line.v_point
+    sl2 = s_line.v_point.round(2)
     tg = (stock.y_close - s_line.get_point(-1)) * 100/ s_line.get_point(-1)
     #p_line could be nil if pressure line too close to support line
     print "支撑压力线: #{sd1},#{sl1},#{sd2},#{sl2}"
     if not p_line.nil?
       pd = p_line.index_date
-      pl = p_line.base
+      pl = p_line.base.round(2)
       pg = (p_line.get_point(s_line.index) - s_line.base) * 100 / s_line.base
       puts ",#{pd},#{pl}"
     else
@@ -332,7 +360,11 @@ class CalcTrendingHelper
     puts "--------"
   end
 
+
   def calc(stock)
+    @calc_day_infos.sort! { |x, y| x.record.date <=> y.record.date }
+    gen_points_blacklist()
+    # puts @points_blacklist.size()
     high_increment_lines = []
     low_increment_lines = []
     @calc_day_infos.each.with_index do |prev, i|
@@ -340,7 +372,7 @@ class CalcTrendingHelper
         # we only calc increment by now
         # CalcTrendingHelper.calc_trending_lines(prev, back, :high).each {
         #   |line| high_increment_lines << line if line.diff > 0}
-        CalcTrendingHelper.calc_trending_lines(prev, back, :low).each {
+        self.calc_trending_lines(prev, back, :low).each {
           |line| low_increment_lines << line if line.diff > 0}
       end
     end
@@ -378,7 +410,6 @@ class TrendingCalculator
     extended = stock.extend_history!(begin_date, end_date)
     return if not extended
     helper = CalcTrendingHelper.new(stock)
-    trending_hash = {}
     helper.calc(stock)
     #[[point_range1, point_range2,
   end

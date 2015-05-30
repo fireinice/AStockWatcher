@@ -44,7 +44,7 @@ class IndexLine
 
   # fixme 这里应该记录对应日期
   attr_reader :index, :base, :diff
-  attr_accessor :v_index, :v_point, :index_date, :v_date, :score
+  attr_accessor :v_index, :v_point, :index_date, :v_date, :score, :debug
 
   def get_diff(index)
     @diff * (index - @index)
@@ -126,10 +126,11 @@ class CalcTrendingHelper
       @days_gap = trading_days
       @date = record.date
       info = []
-      info << record.adj_open
-      info << record.adj_close
-      info << record.adj_high
-      info << record.adj_low
+      info << record.adj_open.round(2)
+      info << record.adj_close.round(2)
+      info << record.adj_high.round(2)
+      info << record.adj_low.round(2)
+      info.uniq!
       info.sort!
       @low1, @low2, @high1, @high2 = info
       @point_segs = []
@@ -152,6 +153,10 @@ class CalcTrendingHelper
       s.minus_below_score!(@date) if @record.adj_close < point
 
       @point_segs.each do |seg|
+        if seg.cover?(point) and line.debug
+          puts seg
+          puts point
+        end
         return s.add_point_score!(@date) if seg.cover?(point)
       end
 
@@ -280,12 +285,15 @@ class CalcTrendingHelper
     accept_range =Range.new(base_price * 0.95, base_price * 1.15)
     puts candi_lines.size
     candi_lines.each do |line|
+      line.debug = true if line.index == -29 and (line.base.round(2) - 12.92) == 0 and (line.diff.round(5) - 0.02429) == 0
       p_diff = @calc_day_infos[0].point_delta
-      sim_lines = 0
-      candi_lines.each {|oline|
-        sim_lines += 1 if line.sim?(oline, p_diff/10, p_diff)}
-      # puts sim_lines
-      next if sim_lines < 5
+      # sim_lines = 0
+      # candi_lines.each {|oline|
+      #   sim_lines += 1 if line.sim?(oline, p_diff/10, p_diff)}
+      # if line.debug
+      #   puts sim_lines
+      # end
+      # next if sim_lines < 5
       score = @calc_day_infos.reduce(Score.new) { |memo, info| memo.plus!(info.score(line)) }
       line.score = score
       if score.points > high_points
@@ -302,7 +310,9 @@ class CalcTrendingHelper
       # skip if too many days is below the support line
       next if score.belows > @calc_day_infos.size / 3
       candis << line
-      # break
+      if line.debug
+        break
+      end
     end
 
     candis.sort!{ |x,y| y.score.score <=> x.score.score}

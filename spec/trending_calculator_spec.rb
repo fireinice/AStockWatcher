@@ -1,6 +1,6 @@
 # coding: utf-8
 require_relative "support/factory_girl"
-require_relative "../trending_calculator_opt"
+require_relative "../trending_calculator"
 
 HISTORY_STR =
 """
@@ -304,23 +304,5 @@ describe "IndexLine" do
     a = IndexLine.new(2, 3.2, 0.2)
     b = IndexLine.new(5, 3.8, 0.2)
     expect(a==b).to be true
-  end
-
-  it "should judge sim for two lines" do
-    # a = IndexLine.new(2, 3.2, 0.201)
-    # b = IndexLine.new(5, 3.8, 0.2)
-    # expect(a==b).to be false
-    # expect(a.sim?(b, 0.01, 0.01)).to be true
-
-    a = IndexLine.new(2, 3.191, 0.2)
-    b = IndexLine.new(5, 3.8, 0.2)
-    expect(a==b).to be false
-    expect(a.sim?(b, 0.01, 0.01)).to be true
-
-    a = IndexLine.new(2, 3.209, 0.2)
-    b = IndexLine.new(5, 3.8, 0.2)
-    expect(a==b).to be false
-    expect(a.sim?(b, 0.01, 0.01)).to be true
-
   end
 end
