@@ -167,29 +167,6 @@ class CalcTrendingHelper
     end
   end
 
-  def in_points_blacklist?(price, date)
-    @points_blacklist.include?("#{price.round(2)}_#{date}")
-  end
-
-  def gen_points_blacklist
-    @points_blacklist = Set.new
-    all_close_points = @calc_day_infos.collect { |e| e.record.adj_close.round(2) }
-    all_close_points.sort!
-    bar = all_close_points.size / 3 + 1
-    @calc_day_infos.each do |info|
-      break if all_close_points.size <= bar
-      bar_point = all_close_points[bar]
-      [info.low1, info.low2].each do |pt|
-        @points_blacklist << "#{pt.round(2)}_#{info.date}" if pt > bar_point
-      end
-      all_close_points.slice!(all_close_points.index(info.record.adj_close.round(2)))
-    end
-    # puts "hello"
-    # @points_blacklist.each do |b|
-    #   puts b
-    # end
-  end
-
   def calc_trending_lines(seg1, seg2, type)
     segs = [seg1, seg2]
     segs.sort!{ |x,y| x.date <=> y.date }
@@ -207,9 +184,7 @@ class CalcTrendingHelper
       back_points << prev.low2 if 0 != (prev.low1 - back.low2).round(3)
     end
     prev_points.each do |p|
-      next if in_points_blacklist?(p, prev.date)
       back_points.each do |b|
-        next if in_points_blacklist?(b, back.date)
         lines << IndexLine.init_with_points(
           prev.index, p, prev.date, back.index, b, back.date)
       end
@@ -363,8 +338,6 @@ class CalcTrendingHelper
 
   def calc(stock)
     @calc_day_infos.sort! { |x, y| x.record.date <=> y.record.date }
-    gen_points_blacklist()
-    # puts @points_blacklist.size()
     high_increment_lines = []
     low_increment_lines = []
     @calc_day_infos.each.with_index do |prev, i|
