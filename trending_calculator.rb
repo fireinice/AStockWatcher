@@ -36,9 +36,8 @@ class IndexLine
     (o.get_point(@index) - @base).round(10) == 0 and (@diff - o.diff).round(10) == 0
   end
 
-  # fixme 这里应该记录对应日期
   attr_reader :index, :base, :diff
-  attr_accessor :v_index, :v_point, :index_date, :v_date, :score, :calc_base_num
+  attr_accessor :v_index, :v_point, :index_date, :v_date, :score
 
   def get_diff(index)
     @diff * (index - @index)
@@ -60,7 +59,7 @@ class CalcTrendingHelper
       @score = 0
     end
 
-    attr_accessor :segs, :points, :score, :belows
+    attr_accessor :segs, :points, :score, :belows, :calc_base_num
 
     def plus!(other)
       if not other.nil?
@@ -331,7 +330,7 @@ class CalcTrendingHelper
 
     puts "日差:#{s_line.diff.round(2)} , 回归差：#{tg.round(2)}%"
     puts "压力差: #{pg.round(2)}%" if not p_line.nil?
-    puts "支撑分数: #{sscore.score.round(2)}, 支撑点数: #{sscore.points}, 支撑线数：#{sscore.segs}, 跌破比例：#{sscore.belows}/#{@calc_day_infos.size}"
+    puts "支撑分数: #{sscore.score.round(2)}, 支撑点数: #{sscore.points}, 支撑线数：#{sscore.segs}, 跌破比例：#{sscore.belows}/#{sscore.calc_base_num}"
     # puts s_line.index, s_line.base, s_line.diff, s_line.v_index, s_line.v_point
     puts "--------"
   end
@@ -367,14 +366,14 @@ class CalcTrendingHelper
     candis = support_lines[:candis]
 
     return nil, nil if candis.empty?
-    print_info(stock, support_lines[:score])
-    print_info(stock, support_lines[:points])
+    CalcTrendingHelper.print_info(stock, support_lines[:score])
+    CalcTrendingHelper.print_info(stock, support_lines[:points])
     for i in (0..candis.size()) do
       s_line = candis[i]
       p_line = pressure_lines[i]
       #p_line could be nil if pressure line too close to support line
       next if p_line.nil?
-      print_info(stock, s_line, p_line)
+      CalcTrendingHelper.print_info(stock, s_line, p_line)
     end
     puts Time.now
     return support_lines, pressure_lines
