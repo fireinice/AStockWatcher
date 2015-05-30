@@ -27,11 +27,18 @@ class QQTradingDay < WebInterface
   end
 
   def self.get_status_batch(stock_list)
-    url = get_url(stock_list)
-    remote_data = self.fetch_data(url)
-    remote_data = @@decoder.iconv(remote_data)
-    return nil if remote_data.nil?
-    infos = self.parse_data(remote_data)
+    start = 0
+    limit = 30
+    infos = {}
+    (0..stock_list.size + limit).step(limit) do |n|
+      url = get_url(stock_list[start..n])
+      remote_data = self.fetch_data(url)
+      remote_data = @@decoder.iconv(remote_data)
+      next if remote_data.nil?
+      infos.merge!(self.parse_data(remote_data))
+      start = n
+    end
+    infos
   end
 
   def self.parse_data(rdata)

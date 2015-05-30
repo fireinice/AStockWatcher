@@ -38,7 +38,7 @@ class IndexLine
 
   # fixme 这里应该记录对应日期
   attr_reader :index, :base, :diff
-  attr_accessor :v_index, :v_point, :index_date, :v_date, :score
+  attr_accessor :v_index, :v_point, :index_date, :v_date, :score, :calc_base_num
 
   def get_diff(index)
     @diff * (index - @index)
@@ -276,6 +276,7 @@ class CalcTrendingHelper
     accept_range =Range.new(base_price * 0.95, base_price * 1.15)
     candi_lines.each do |line|
       score = @calc_day_infos.reduce(Score.new) { |memo, info| memo.plus!(info.score(line)) }
+      score.calc_base_num = @calc_day_infos.size
       line.score = score
       if score.points > high_points
         high_points_line = line
@@ -308,7 +309,7 @@ class CalcTrendingHelper
     return lines
   end
 
-  def print_info(stock, s_line, p_line=nil)
+  def self.print_info(stock, s_line, p_line=nil)
     return if s_line.nil?
     return if stock.y_close.nil?
     sscore = s_line.score
@@ -318,7 +319,7 @@ class CalcTrendingHelper
     sl2 = s_line.v_point.round(2)
     tg = (stock.y_close - s_line.get_point(-1)) * 100/ s_line.get_point(-1)
     #p_line could be nil if pressure line too close to support line
-    print "支撑压力线: #{sd1},#{sl1},#{sd2},#{sl2}"
+    print "支撑压力线: #{stock.code},#{sd1},#{sl1},#{sd2},#{sl2}"
     if not p_line.nil?
       pd = p_line.index_date
       pl = p_line.base.round(2)
@@ -335,9 +336,13 @@ class CalcTrendingHelper
     puts "--------"
   end
 
+  def get_least_diff(day_info)
+    lows = [day_info.low1, day_info.low2]
+    #we can calc the most diff and least diff to limit the search lines
+    #如果diff很大，对前面的结果是有利的，但是不利于后面的情况，反之亦然
+  end
 
   def calc(stock)
-    @calc_day_infos.sort! { |x, y| x.record.date <=> y.record.date }
     high_increment_lines = []
     low_increment_lines = []
     @calc_day_infos.each.with_index do |prev, i|

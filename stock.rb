@@ -141,6 +141,10 @@ class Stock
     @history = nil
   end
 
+  def self.interface=(inteface_kls)
+    @@interface = inteface_kls
+  end
+
   def self.parse_code code
     v = []
     mkt = code.start_with?('6') ? 'sh' : 'sz'
@@ -149,6 +153,7 @@ class Stock
 
   attr_reader :code, :market, :buy_price, :buy_quantity, :costing,
               :name, :deal, :y_close, :t_open, :t_date, :t_date_str,
+              :pb, :pe,
               :last_update_date,
               :history
 
@@ -183,7 +188,7 @@ class Stock
   end
 
   def update_trading!()
-    info = SinaTradingDay.get_status(self)
+    info = @@interface.get_status(self)
     self.update_day_trading_info!(info)
   end
 
@@ -199,6 +204,8 @@ class Stock
       @t_date_str = day_trading_hash[:date]
       @t_date = Date.parse(@t_date_str)
     end
+    @pb = day_trading_hash[:pb] if not day_trading_hash[:pb].nil?
+    @pe = day_trading_hash[:pe] if not day_trading_hash[:pe].nil?
     self
   end
 
