@@ -1,4 +1,6 @@
-# coding: utf-8
+#!/usr/bin/env ruby
+# -*- coding: utf-8 -*-
+
 require "optparse"
 require "yaml"
 require 'terminal-table/import'
@@ -321,6 +323,7 @@ if $0 == __FILE__
         TrendingCalculator.analyze(
           stock, tradingLineBeginDate, tradingLineBeginPrice,
           tradingLineEndDate, tradingLineEndPrice, ampLineDate, ampLinePrice)
+        GBRCCalculator.analyze(stock)
         cfg_file.updateStock(stock)
         exit(0)
       end

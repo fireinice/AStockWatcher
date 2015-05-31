@@ -4,6 +4,27 @@ require_relative "trending_calculator"
 require_relative "qq_interface"
 require_relative "ctxalgo_interface"
 
+def sort_by_points(infos)
+  line_infos = {}
+  s_lines = []
+  infos.each do |ref, v|
+    support_lines = v[0][:candis]
+    pressure_lines = v[1]
+    support_lines.each do |s|
+      line_infos[s] = ref
+      s_lines << s
+    end
+  end
+  s_lines.sort!{ |x,y| y.score.points <=> x.score.points }
+  ret_info = {}
+  s_lines.each do |l|
+    next if ret_info.has_key?(l)
+    ret_info[line_infos[l]] = infos[line_infos[l]]
+  end
+  ret_info
+end
+
+
 if $0 == __FILE__
   infos = YAML.load(File.open("trending_scan.yml"))
   Stock.interface = QQTradingDay
@@ -14,6 +35,8 @@ if $0 == __FILE__
   end
 
   stock_infos = QQTradingDay.get_status_batch(stocks.values)
+
+  infos = sort_by_points(infos)
 
   infos.each do |ref, value|
     support_lines = value[0]
