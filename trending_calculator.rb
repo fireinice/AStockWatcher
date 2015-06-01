@@ -316,7 +316,7 @@ class CalcTrendingHelper
     sl1 = s_line.base.round(2)
     sd2 = s_line.v_date
     sl2 = s_line.v_point.round(2)
-    tg = (stock.y_close - s_line.get_point(-1)) * 100/ s_line.get_point(-1)
+    tg = (stock.deal - s_line.get_point(-1)) * 100/ s_line.get_point(-1)
     #p_line could be nil if pressure line too close to support line
     print "支撑压力线: #{stock.code},#{sd1},#{sl1},#{sd2},#{sl2}"
     if not p_line.nil?
@@ -328,8 +328,12 @@ class CalcTrendingHelper
       puts ""
     end
 
-    puts "日差:#{s_line.diff.round(2)} , 回归差：#{tg.round(2)}%"
-    puts "压力差: #{pg.round(2)}%" if not p_line.nil?
+    print "日差:#{s_line.diff.round(2)} , 回归差：#{tg.round(2)}%"
+    if not p_line.nil?
+      puts ",压力差: #{pg.round(2)}%"
+    else
+      puts ""
+    end
     puts "支撑分数: #{sscore.score.round(2)}, 支撑点数: #{sscore.points}, 支撑线数：#{sscore.segs}, 跌破比例：#{sscore.belows}/#{sscore.calc_base_num}"
     # puts s_line.index, s_line.base, s_line.diff, s_line.v_index, s_line.v_point
     puts "--------"
