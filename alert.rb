@@ -1,7 +1,7 @@
 # coding: utf-8
 require "yaml"
 
-require_relative "smsbao"
+require_relative "gtalk_alert"
 require_relative "stock"
 
 module AlertDirection
@@ -124,7 +124,8 @@ class AlertManager
       content += "支撑#{stock.trending_line.round(2)},压力#{ (stock.trending_line + stock.trending_amp).round(2)},通道#{(stock.trending_line - stock.trending_amp).round(2)},"
     end
     content += Time.now.strftime('%R')
-    SMSBao.send_to(alert.user.phone, content)
+    # SMSBao.send_to(alert.user.phone, content)
+    GtalkAlert.send_to(alert.user.phone, content)
   end
 
 

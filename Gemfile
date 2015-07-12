@@ -2,6 +2,7 @@ source "https://rubygems.org"
 gem "iconv"
 gem "terminal-table"
 gem "colorize"
+gem 'easy-gtalk-bot'
 
 group :development do
   gem "rspec"
