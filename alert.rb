@@ -87,6 +87,11 @@ class AlertManager
     infos = @@interface.get_status_batch(stock_list)
     stock_list.each do |stock|
       stock.update_day_trading_info!(infos[stock.code])
+      if not stock.buy_quantity.nil? and stock.buy_quantity > 0
+        desc = "止损线"
+        price_alert = Alert.new(user, stock, stock.buy_price * 0.95, AlertType::Dynamic, desc)
+        add_alert(price_alert)
+      end
       if stock.class.method_defined?(:gbrc_line) and stock.gbrc_line
         desc = "顾比线"
         gbrc_alert = Alert.new(user, stock, stock.gbrc_line, AlertType::Dynamic, desc)
