@@ -40,7 +40,7 @@ class GtalkAlert
   def self.send(user_name, password, phones, content)
     phones = [phones] if not phones.is_a?(Array)
     phones.each do |phone|
-      bot.message(phone.strip,"#{content}")
+      @@gtalk.message(phone.strip,"#{content}")
     end
     return nil
   end
