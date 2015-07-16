@@ -3,6 +3,7 @@ gem "iconv"
 gem "terminal-table"
 gem "colorize"
 gem 'easy-gtalk-bot'
+gem 'gtalk'
 
 group :development do
   gem "rspec"

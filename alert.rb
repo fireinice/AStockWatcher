@@ -1,5 +1,6 @@
 # coding: utf-8
 require "yaml"
+require "logger"
 
 require_relative "gtalk_alert"
 require_relative "stock"
@@ -36,6 +37,9 @@ end
 class AlertManager
   @@interface = SinaTradingDay
   @@yml_filename = "alert.yml"
+  @@logger = Logger.new("alert.log")
+  @@logger.level = Logger::INFO
+
 
   def self.load_alerts(alerts_yml)
     @@yml_filename = alerts_yml
@@ -129,7 +133,9 @@ class AlertManager
       content += "支撑#{stock.trending_line.round(2)},压力#{ (stock.trending_line + stock.trending_amp).round(2)},通道#{(stock.trending_line - stock.trending_amp).round(2)},"
     end
     content += Time.now.strftime('%R')
+    
     # SMSBao.send_to(alert.user.phone, content)
+    @@logger.info("#{content}")
     GtalkAlert.send_to(alert.user.phone, content)
   end
 

@@ -310,15 +310,17 @@ class CalcTrendingHelper
 
   def self.print_info(stock, s_line, p_line=nil)
     return if s_line.nil?
-    return if stock.y_close.nil?
+    base_price = stock.deal.nil? ? stock.y_close : stock.deal
+    return if base_price.nil?
+    puts "停牌" if stock.deal.nil?
     sscore = s_line.score
     sd1 = s_line.index_date
     sl1 = s_line.base.round(2)
     sd2 = s_line.v_date
     sl2 = s_line.v_point.round(2)
-    tg = (stock.deal - s_line.get_point(-1)) * 100/ s_line.get_point(-1)
-    #p_line could be nil if pressure line too close to support line
+    tg = (base_price - s_line.get_point(-1)) * 100/ s_line.get_point(-1)
     print "支撑压力线: #{stock.code},#{sd1},#{sl1},#{sd2},#{sl2}"
+    #p_line could be nil if pressure line too close to support line
     if not p_line.nil?
       pd = p_line.index_date
       pl = p_line.base.round(2)
@@ -425,7 +427,7 @@ class TrendingCalculator
     dates = [start_date, end_date, amp_date]
     dates.sort!
     begin_date = dates[0]
-    stock.extend_history!(start_date, end_date)
+    stock.extend_history!(dates[0], dates[-1])
     calcBeginDate, calcBeginPrice, dayPriceDiff, trendingAmp =
                                                  calc(
                                                    stock,
