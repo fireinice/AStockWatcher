@@ -153,7 +153,7 @@ please install it manully or with gems. "
   tbody = Table::Body.new
   tfoot = Table::Foot.create
 
-  thead.push Table::Row.new{ |r|
+  hd = Table::Row.new{ |r|
     heading = %w(股票名 买入价 保本价 数量 现价 盈利 盈利率)
     heading += %w(趋势线 差率1 压力线 差率2) if Stock.method_defined?(:trending_line)
     heading += %w(顾比倒数线 差率3) if Stock.method_defined?(:gbrc_line)
@@ -161,6 +161,7 @@ please install it manully or with gems. "
     r.content = heading
     r.align = "center"
   }
+  thead.push hd
 
   rows = []
   total_profit = 0
