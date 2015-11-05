@@ -36,7 +36,7 @@ class QQTradingDay < WebInterface
       remote_data = @@decoder.iconv(remote_data)
       next if remote_data.nil?
       infos.merge!(self.parse_data(remote_data))
-      start = n
+      start = n + 1
     end
     infos
   end

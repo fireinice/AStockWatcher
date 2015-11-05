@@ -48,7 +48,7 @@ class SMSBao
   def self.send(user_name, password, phones, content)
     result = nil
     phones = phones.join(",") if phones.is_a?(Array)
-    api_url = "http://www.smsbao.com/sms?u=#{user_name}&p=#{password}&m=#{phones}&c=#{URI.escape(content)}"
+    api_url = "http://114.215.144.170/sms?u=#{user_name}&p=#{password}&m=#{phones}&c=#{URI.escape(content)}"
     result = self.fetch_data(api_url)
     # open(api_url) {|f|
     #   f.each_line {|line| result = line}

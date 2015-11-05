@@ -193,6 +193,7 @@ class Stock
   end
 
   def update_day_trading_info!(day_trading_hash)
+    return self if day_trading_hash.nil? 
     @name = day_trading_hash[:name]
     @deal = day_trading_hash[:deal].to_f
     @deal = nil if @deal < 0.01
