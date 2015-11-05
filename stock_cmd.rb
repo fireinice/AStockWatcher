@@ -152,6 +152,7 @@ please install it manully or with gems. "
   tbody = Table::Body.new
   tfoot = Table::Foot.create
   thead = Table::Head.create
+
   if defined?(hd).nil?
     hd = Table::Row.new{ |r|
       heading = %w(股票名 买入价 保本价 数量 现价 盈利 盈利率)
@@ -161,8 +162,8 @@ please install it manully or with gems. "
       r.content = heading
       r.align = "center"
     }
+    thead.push hd
   end
-  thead.push hd
 
   rows = []
   total_profit = 0
