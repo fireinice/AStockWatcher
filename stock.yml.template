@@ -3,6 +3,8 @@ CommonConfig:
   charges_ratio: 0.4
   tax_ratio: 0.1
   other_charge: 1
+HTML:
+  /path/to/html/filename.html
 User:
   phone: 18601012345
 Alert:

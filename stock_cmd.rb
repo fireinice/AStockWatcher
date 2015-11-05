@@ -129,7 +129,7 @@ Or you could use argument -p to disable the colorful print effect."
   puts total_profit
 end
 
-def htmlPrintProfit2(stocks, infos, profits, is_colorful)
+def htmlPrintProfit2(html_path, stocks, infos, profits, is_colorful)
   begin
     require "rubygems"
     require "html/table"
@@ -215,85 +215,30 @@ please install it manully or with gems. "
   end
 
 
-  # total_title = "总盈利:\t"
-  # total_title = tint(total_title, 1, 0, is_colorful)
-  # printf total_title
-  # is_gain = total_profit > 0
-  # total_profit = sprintf("%.2f", total_profit)
-  # total_profit = tint(total_profit, 2, is_gain, is_colorful)
+  total_title = "总盈利:\t"
+  total_title = htmlTint(total_title, 1, 0, is_colorful)
+  is_gain = total_profit > 0
+  total_profit = sprintf("%.2f", total_profit)
+  total_profit = htmlTint(total_profit, 2, is_gain, is_colorful)
+
+  frow = Table::Row.new{ |r|
+    r.content = Table::Row::Data.new{ |d|
+      d.colspan = 4
+      d.align   = "left"
+      d.content = total_title + total_profit
+    }
+  }
+  tfoot[0] = frow
   # puts total_profit
 
 
   table.push thead
-  File.open("test.html", "w+") do |aFile|
+  table.push tfoot
+  File.open(html_path, "w+") do |aFile|
     aFile.write("<html><meta http-equiv='Content-Type' content='text/html; charset=UTF-8''><head><title>股票</title></head><body>")
     aFile.write(table.html)
     aFile.write("</body></html>")
   end
-  # heading = %w(股票名 买入价 保本价 数量 现价 盈利 盈利率)
-  # heading += %w(趋势线 差率1 压力线 差率2) if Stock.method_defined?(:trending_line)
-  # heading += %w(顾比倒数线 差率3) if Stock.method_defined?(:gbrc_line)
-  # heading.map!{ |item| tint(item, 1, 0, is_colorful) }
-
-  # rows = []
-  # total_profit = 0
-  # stocks.each do |stock|
-  #   row = []
-  #   profit = profits[stock.code]
-  #   row << stock.name
-  #   if stock.deal.nil? or stock.deal < 0.01
-  #     row += ['-'] * 6
-  #   elsif stock.buy_quantity.nil? or stock.buy_quantity < 1
-  #     row += ['-'] * 3
-  #     row += [stock.deal]
-  #     row += ['-'] * 2
-  #   else
-  #     deal_info = [stock.buy_price, stock.costing, stock.buy_quantity, stock.deal]
-  #     deal_info.map!{ |item| item = item.to_f.round(2).to_s }
-  #     row += deal_info
-  #     profit_info = profit.map do |item|
-  #       item = item.round(2)
-  #       tint(item, 2, profit[1]>0, is_colorful)
-  #     end
-  #     row += profit_info
-  #     total_profit += profit[0]
-  #   end
-
-  #   gap = TrendingCalculator.get_gap(stock, infos)
-  #   if gap.nil? and stock.respond_to?(:trending_line)
-  #     row += ['-'] * 4
-  #   else
-  #     gap_info = gap[0,4].map.with_index do |item, i|
-  #       item = item.round(2)
-  #       cond = ( i < 2 ?  gap[1]> 0 : gap[3]> 0 )
-  #       tint(item, 2, cond , is_colorful)
-  #     end
-  #     row += gap_info
-  #   end
-
-  #   gbrc_gap = GBRCCalculator.get_gap(stock, infos)
-  #   if gbrc_gap.nil? and stock.respond_to?(:gbrc_line)
-  #     row += ['-'] * 2
-  #   else
-  #     gap_info = gbrc_gap.map do |item|
-  #       item = item.round(2)
-  #       tint(item, 2, gbrc_gap[1] > 0, is_colorful)
-  #     end
-  #     row += gap_info
-  #   end
-  #   rows << row
-  # end
-  # table = Terminal::Table.new :headings => heading, :rows => rows
-  # system('clear')
-  # puts table
-
-  # total_title = "总盈利:\t"
-  # total_title = tint(total_title, 1, 0, is_colorful)
-  # printf total_title
-  # is_gain = total_profit > 0
-  # total_profit = sprintf("%.2f", total_profit)
-  # total_profit = tint(total_profit, 2, is_gain, is_colorful)
-  # puts total_profit
 end
 
 def fmtPrintProfit(stocks, infos, profits, is_colorful)
@@ -617,7 +562,7 @@ if $0 == __FILE__
       # system('clear') if watch
       # fmtPrintProfit(my_account.all_stock, infos, profits, !plain)
       fmtPrintProfit2(all_stocks, infos, profits, !plain)
-      htmlPrintProfit2(all_stocks, infos, profits, !plain)
+      htmlPrintProfit2(cfg_file.cfg['HTML'], all_stocks, infos, profits, !plain)
       break if not watch
       sleep 5
       init = false
