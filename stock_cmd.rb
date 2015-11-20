@@ -153,7 +153,7 @@ please install it manully or with gems. "
   tfoot = Table::Foot.create
   thead = Table::Head.create
 
-  if defined?(hd).nil?
+  if thead.empty?
     hd = Table::Row.new{ |r|
       heading = %w(股票名 买入价 保本价 数量 现价 盈利 盈利率)
       heading += %w(趋势线 差率1 压力线 差率2) if Stock.method_defined?(:trending_line)
@@ -238,8 +238,10 @@ please install it manully or with gems. "
   table.push thead
   table.push tfoot
   File.open(html_path, "w+") do |aFile|
-    aFile.write("<html><meta http-equiv='Content-Type' content='text/html; charset=UTF-8''><head><title>股票</title></head><body>")
+    aFile.write("<html><meta http-equiv='Content-Type' content='text/html; charset=UTF-8''>")
+    aFile.write("<meta http-equiv='refresh' content='30'; charset=UTF-8''><head><title>股票</title></head><body>")
     aFile.write(table.html)
+    aFile.write("<br/><span>#{Time.now}</span>")
     aFile.write("</body></html>")
   end
 end
