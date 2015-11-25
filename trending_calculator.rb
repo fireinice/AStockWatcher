@@ -257,8 +257,10 @@ class CalcTrendingHelper
           high_line.index_date = seg_value.date
         end
       end
-      high_line.score = high_score
-      lines << high_line
+      if not high_line.nil?
+        high_line.score = high_score
+        lines << high_line
+      end
     end
 
     # high_score = Score.new
@@ -445,7 +447,6 @@ class TrendingCalculator
   def self.calc_trending(stock)
     end_date = Date.today
     begin_date = end_date - 30 * 6 # 6 months
-    puts stock.to_hash
     extended = TrendingCalculator.generate_history!(stock, begin_date, end_date)
     # extended = stock.extend_history!(begin_date, end_date)
     return if not extended
@@ -554,7 +555,7 @@ end
 if $0 == __FILE__
   require_relative "stock_cmd"
   cfg_file = CFGController.new("stock.yml")
-  TrendingCalculator.calc_trending(cfg_file.getAllStocks[0])
+  TrendingCalculator.calc_trending(Stock.new("600256"))
   # cfg_file.getAllStocks.each { |stock| TrendingCalculator.update_trending(stock) }
   # cfg_file.updateCFG()
 end
