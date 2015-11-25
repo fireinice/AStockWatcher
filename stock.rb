@@ -55,6 +55,10 @@ class StockHistory
     return records
   end
 
+  def trading_days
+    @dates
+  end
+
   def self.build_history(stock, begin_date, end_date)
     records = @@interface.get_status(stock, begin_date, end_date)
     return nil if records.nil? or records.empty?
@@ -82,6 +86,12 @@ class StockHistory
 
   def get_record_by_reverse_gap_days gap_days
     @records[@dates[gap_days]]
+  end
+
+  def set_record_by_date!(date, value)
+    extend_history!(@stock, date, @dates[-1]) if date < @dates[0] if not @stock.nil?
+    extend_history!(@stock, @dates[0], date) if date > @dates[-1] if not @stock.nil?
+    @records[date] = value
   end
 
   def get_record_by_date(date)
@@ -193,7 +203,7 @@ class Stock
   end
 
   def update_day_trading_info!(day_trading_hash)
-    return self if day_trading_hash.nil? 
+    return self if day_trading_hash.nil?
     @name = day_trading_hash[:name]
     @deal = day_trading_hash[:deal].to_f
     @deal = nil if @deal < 0.01

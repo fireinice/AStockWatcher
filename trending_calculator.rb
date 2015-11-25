@@ -3,15 +3,19 @@ require 'date'
 require 'set'
 require_relative "stock"
 require_relative "interface"
+require_relative "trending_calculator_exp"
 
 class Stock
   attr_reader :trending_base_date, :trending_line, :day_price_diff, :trending_amp
+  attr_accessor :trending_type
+
   def update_trending_info(trending_base_date, trending_line,
-                           day_price_diff, trending_amp)
+                           day_price_diff, trending_amp, trending_type=:linear)
     @trending_base_date = trending_base_date
     @trending_line = trending_line
     @day_price_diff = day_price_diff
     @trending_amp = trending_amp
+    @trending_type = trending_type
   end
 end
 
@@ -113,9 +117,13 @@ class CalcTrendingHelper
   end
 
   class DaySegments
-    def initialize(record, trading_days)
+    def initialize(record, trading_days, type)
       @record = record
-      @point_delta = record.adj_low * 0.001
+      if :exp == type
+        @point_delta = Math.log(1+0.001)
+      else
+        @point_delta = record.adj_low * 0.001
+      end
       @days_gap = trading_days
       @date = record.date
       info = []
@@ -162,7 +170,7 @@ class CalcTrendingHelper
     @calc_day_infos = []
     total_trading_days = stock.history.records.size
     stock.history.records.each.with_index do |record, index|
-      @calc_day_infos << DaySegments.new(record, total_trading_days - index)
+      @calc_day_infos << DaySegments.new(record, total_trading_days - index, stock.trending_type)
     end
   end
 
@@ -177,10 +185,10 @@ class CalcTrendingHelper
     case type
     when :high
       prev_points << prev.high1
-      back_points << prev.high2 if 0 != (prev.high1 - back.high2).round(3)
+      back_points << prev.high2 if 0 != (prev.high1 - back.high2).round(10)
     when :low
       prev_points << prev.low1
-      back_points << prev.low2 if 0 != (prev.low1 - back.low2).round(3)
+      back_points << prev.low2 if 0 != (prev.low1 - back.low2).round(10)
     end
     prev_points.each do |p|
       back_points.each do |b|
@@ -191,7 +199,7 @@ class CalcTrendingHelper
     return lines
   end
 
-  def calc_pressure_lines(support_lines)
+  def calc_pressure_lines(support_lines, type)
     lines = []
     support_lines.each do |line|
       # score = line.score
@@ -201,16 +209,26 @@ class CalcTrendingHelper
       point_hash = {}
       points = []
       pt_tmp = []
-      point_delta = line.base * 0.002
+      # point_delta = line.base * 0.002
+      if :exp == type
+        point_delta = Math.log(1+0.002)
+      else
+        point_delta = line.base * 0.002
+      end
       @calc_day_infos.each do |day_segs|
         diff = line.get_diff(day_segs.index)
         day_points = []
         day_points << day_segs.high1 - diff
         day_points << day_segs.high2 - diff
         # puts "date:#{day_segs.date}, diff:#{diff}, day_points:#{day_points}, high1:#{day_segs.high1}, high2:#{day_segs.high2}"
+        if :exp == type
+          accept_range = Range.new(line.base + Math.log(1.05), line.base + Math.log(1.12))
+        else
+          accept_range = Range.new(line.base * 1.05, line.base * 1.12)
+        end
         day_points.each do |pt|
           # only search between %5 to 12%
-          next if not Range.new(line.base * 1.05, line.base * 1.12).cover?(pt)
+          next if not accept_range.cover?(pt)
           point_hash[pt] = [] if point_hash[pt].nil?
           point_hash[pt] << day_segs
           pt_tmp << pt
@@ -272,7 +290,11 @@ class CalcTrendingHelper
     high_score = 0
     base_price = stock.history.get_last_record.adj_close
     # skip if line above price now more than 5% or below than 15%
-    accept_range =Range.new(base_price * 0.95, base_price * 1.15)
+    if :exp == stock.trending_type
+      accept_range =Range.new(base_price + Math.log(0.95), base_price + Math.log(1.15))
+    else
+      accept_range =Range.new(base_price * 0.95, base_price * 1.15)
+    end
     candi_lines.each do |line|
       score = @calc_day_infos.reduce(Score.new) { |memo, info| memo.plus!(info.score(line)) }
       score.calc_base_num = @calc_day_infos.size
@@ -308,29 +330,42 @@ class CalcTrendingHelper
     return lines
   end
 
-  def self.print_info(stock, s_line, p_line=nil)
+  def self.print_info(stock, s_line, type=:linear, p_line=nil)
     return if s_line.nil?
     base_price = stock.deal.nil? ? stock.y_close : stock.deal
     return if base_price.nil?
     puts "停牌" if stock.deal.nil?
     sscore = s_line.score
     sd1 = s_line.index_date
-    sl1 = s_line.base.round(2)
     sd2 = s_line.v_date
+    sl1 = s_line.base.round(2)
     sl2 = s_line.v_point.round(2)
-    tg = (base_price - s_line.get_point(-1)) * 100/ s_line.get_point(-1)
+
     print "支撑压力线: #{stock.code},#{sd1},#{sl1},#{sd2},#{sl2}"
     #p_line could be nil if pressure line too close to support line
     if not p_line.nil?
       pd = p_line.index_date
       pl = p_line.base.round(2)
-      pg = (p_line.get_point(s_line.index) - s_line.base) * 100 / s_line.base
-      puts ",#{pd},#{pl}"
-    else
-      puts ""
+      print ",#{pd},#{pl}"
+      if :exp == type
+        pg = (Math.exp(p_line.get_point(s_line.index)) - Math.exp(s_line.base)) * 100 / Math.exp(s_line.base)
+      else
+        pg = (p_line.get_point(s_line.index) - s_line.base) * 100 / s_line.base
+      end
     end
 
-    print "日差:#{s_line.diff.round(2)} , 回归差：#{tg.round(2)}%"
+    if :exp == type
+      puts ",exp"
+      day_diff = (Math.exp(s_line.diff) - 1) * s_line.get_point(-1)
+      day_diff = day_diff.round(5)
+      tg = (base_price - Math.exp(s_line.get_point(-1))) * 100/ Math.exp(s_line.get_point(-1))
+    else
+      puts",line"
+      day_diff = s_line.diff.round(2)
+      tg = (base_price - s_line.get_point(-1)) * 100/ s_line.get_point(-1)
+    end
+
+    print "日差:#{day_diff} , 回归差：#{tg.round(2)}%"
     if not p_line.nil?
       puts ",压力差: #{pg.round(2)}%"
     else
@@ -363,7 +398,7 @@ class CalcTrendingHelper
     support_lines = calc_support_lines(low_increment_lines, stock)
     return nil if support_lines.nil?
 
-    pressure_lines = calc_pressure_lines(support_lines[:candis])
+    pressure_lines = calc_pressure_lines(support_lines[:candis], stock.trending_type)
     stock.update_trading!()
 
     puts "============"
@@ -372,29 +407,50 @@ class CalcTrendingHelper
     candis = support_lines[:candis]
 
     return nil, nil if candis.empty?
-    CalcTrendingHelper.print_info(stock, support_lines[:score])
-    CalcTrendingHelper.print_info(stock, support_lines[:points])
+    CalcTrendingHelper.print_info(stock, support_lines[:score], stock.trending_type)
+    CalcTrendingHelper.print_info(stock, support_lines[:points], stock.trending_type)
     for i in (0..candis.size()) do
       s_line = candis[i]
       p_line = pressure_lines[i]
       #p_line could be nil if pressure line too close to support line
       next if p_line.nil?
-      CalcTrendingHelper.print_info(stock, s_line, p_line)
+      CalcTrendingHelper.print_info(stock, s_line, stock.trending_type, p_line)
     end
     puts Time.now
     return support_lines, pressure_lines
   end
 end
 
+
 class TrendingCalculator
+  def self.adapter_exists?()
+    begin
+      klass = Module.const_get("TrendingCalculatorAdapter")
+      return klass.is_a?(Class)
+    rescue NameError
+      return false
+    end
+  end
+
+
+  def self.generate_history!(stock, begin_date, end_date)
+    extended = stock.extend_history!(begin_date, end_date)
+    return false if not extended
+    if TrendingCalculator.adapter_exists?
+      TrendingCalculatorAdapter.to_inner!(stock)
+    end
+    stock
+  end
+
   def self.calc_trending(stock)
     end_date = Date.today
     begin_date = end_date - 30 * 6 # 6 months
-    extended = stock.extend_history!(begin_date, end_date)
+    puts stock.to_hash
+    extended = TrendingCalculator.generate_history!(stock, begin_date, end_date)
+    # extended = stock.extend_history!(begin_date, end_date)
     return if not extended
     helper = CalcTrendingHelper.new(stock)
     helper.calc(stock)
-    #[[point_range1, point_range2,
   end
 
 
@@ -418,12 +474,18 @@ class TrendingCalculator
     gap_trading_days -= 1 if not stock.history.is_trading_day?(stock.trending_base_date)
     return if gap_trading_days <= 0
     trending_line = stock.trending_line + stock.day_price_diff * gap_trading_days
+    if self.adapter_exists?
+      trending_type = :exp
+    else
+      trending_type = :linear
+    end
     stock.update_trending_info(end_date, trending_line,
-                               stock.day_price_diff, stock.trending_amp)
+                               stock.day_price_diff,
+                               stock.trending_amp, trending_type)
   end
 
   def self.analyze(stock, start_date, start_price,
-                   end_date, end_price, amp_date, amp_price)
+                   end_date, end_price, amp_date, amp_price, trending_type)
     dates = [start_date, end_date, amp_date]
     dates.sort!
     begin_date = dates[0]
@@ -435,7 +497,7 @@ class TrendingCalculator
                                                    end_date, end_price,
                                                    amp_date, amp_price)
     if not calcBeginDate.nil?
-      stock.update_trending_info(calcBeginDate, calcBeginPrice, dayPriceDiff, trendingAmp)
+      stock.update_trending_info(calcBeginDate, calcBeginPrice, dayPriceDiff, trendingAmp, trending_type)
     else
       puts "date error"
     end
@@ -448,7 +510,11 @@ class TrendingCalculator
     end_date = Date.today
     end_date = end_date + 1 if AStockMarket.is_now_after_trading_time?
     update_trending(stock) if end_date > stock.trending_base_date
-    gap = current_price - stock.trending_line
+    if :exp == stock.trending_type
+      gap = current_price - Math.exp(stock.trending_line)
+    else
+      gap = current_price - stock.trending_line
+    end
     gap_ratio = gap * 100 / current_price
     if gap < 0
       amp = stock.trending_line - stock.trending_amp
@@ -457,6 +523,7 @@ class TrendingCalculator
       amp = stock.trending_line + stock.trending_amp
       amp_type = 'u'
     end
+    amp = Math.exp(amp) if :exp == stock.trending_type
     amp_ratio = (current_price - amp) * 100 / current_price
     return [stock.trending_line, gap_ratio, amp, amp_ratio, amp_type]
   end
@@ -487,6 +554,7 @@ end
 if $0 == __FILE__
   require_relative "stock_cmd"
   cfg_file = CFGController.new("stock.yml")
-  cfg_file.getAllStocks.each { |stock| TrendingCalculator.update_trending(stock) }
-  cfg_file.updateCFG()
+  TrendingCalculator.calc_trending(cfg_file.getAllStocks[0])
+  # cfg_file.getAllStocks.each { |stock| TrendingCalculator.update_trending(stock) }
+  # cfg_file.updateCFG()
 end

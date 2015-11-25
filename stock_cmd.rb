@@ -443,7 +443,7 @@ if $0 == __FILE__
         exit(0)
       end
 
-      opts.on("-n", "--analyze-trending [CODE],[TradingLineStartDate],[TradingLineStartPrice],[TradingLineEndDate],[TradingLineEndPrice],[AmpLineDate],[AmpLinePrice],", Array, "analysis a stock with trading line info") do |s|
+      opts.on("-n", "--analyze-trending [CODE],[TradingLineStartDate],[TradingLineStartPrice],[TradingLineEndDate],[TradingLineEndPrice],[AmpLineDate],[AmpLinePrice],[TrendingType],", Array, "analysis a stock with trading line info") do |s|
         v = code_parser.call(s[0])
         market = v[0]
         code = v[1]
@@ -453,10 +453,12 @@ if $0 == __FILE__
         tradingLineEndPrice = s[4].to_f
         ampLineDate = Date.parse(s[5])
         ampLinePrice = s[6].to_f
+        trendingType = s[7].to_s
         stock = cfg_file.getStock(market, code)
         TrendingCalculator.analyze(
           stock, tradingLineBeginDate, tradingLineBeginPrice,
-          tradingLineEndDate, tradingLineEndPrice, ampLineDate, ampLinePrice)
+          tradingLineEndDate, tradingLineEndPrice,
+          ampLineDate, ampLinePrice, trendingType)
         GBRCCalculator.analyze(stock)
         cfg_file.updateStock(stock)
         exit(0)

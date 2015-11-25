@@ -17,4 +17,27 @@ class StockRecord
 
   attr_reader :date, :open, :close, :high, :low, :vol, :ratio,
               :adj_close, :adj_open, :adj_high, :adj_low
+
+  def close=(nclose)
+    @close = nclose
+    @ratio = (@close-@open)/@open
+    @adj_close = @close * @adj_ratio
+  end
+
+  def open=(nopen)
+    @open = nopen
+    @ratio = (@close-@open)/@open
+    @adj_open = @open * @adj_ratio
+  end
+
+  def high=(nhigh)
+    @high = nhigh
+    @adj_high = @adj_ratio * @high
+  end
+
+  def low=(nlow)
+    @low = nlow
+    @adj_low = @adj_ratio * @low
+  end
+
 end
