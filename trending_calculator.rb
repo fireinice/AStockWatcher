@@ -33,6 +33,7 @@ class IndexLine
     line.v_index = index2
     line.v_point = point2
     line.v_date = date2
+    line.type = :linear
     line
   end
 
@@ -41,7 +42,7 @@ class IndexLine
   end
 
   attr_reader :index, :base, :diff
-  attr_accessor :v_index, :v_point, :index_date, :v_date, :score
+  attr_accessor :v_index, :v_point, :index_date, :v_date, :score, :type
 
   def get_diff(index)
     @diff * (index - @index)
@@ -192,8 +193,10 @@ class CalcTrendingHelper
     end
     prev_points.each do |p|
       back_points.each do |b|
-        lines << IndexLine.init_with_points(
+        line = IndexLine.init_with_points(
           prev.index, p, prev.date, back.index, b, back.date)
+        line.type = :exp
+        lines << line
       end
     end
     return lines
@@ -212,8 +215,10 @@ class CalcTrendingHelper
       # point_delta = line.base * 0.002
       if :exp == type
         point_delta = Math.log(1+0.002)
+        accept_range = Range.new(line.base + Math.log(1.05), line.base + Math.log(1.12))
       else
         point_delta = line.base * 0.002
+        accept_range = Range.new(line.base * 1.05, line.base * 1.12)
       end
       @calc_day_infos.each do |day_segs|
         diff = line.get_diff(day_segs.index)
@@ -221,11 +226,6 @@ class CalcTrendingHelper
         day_points << day_segs.high1 - diff
         day_points << day_segs.high2 - diff
         # puts "date:#{day_segs.date}, diff:#{diff}, day_points:#{day_points}, high1:#{day_segs.high1}, high2:#{day_segs.high2}"
-        if :exp == type
-          accept_range = Range.new(line.base + Math.log(1.05), line.base + Math.log(1.12))
-        else
-          accept_range = Range.new(line.base * 1.05, line.base * 1.12)
-        end
         day_points.each do |pt|
           # only search between %5 to 12%
           next if not accept_range.cover?(pt)
@@ -332,7 +332,8 @@ class CalcTrendingHelper
     return lines
   end
 
-  def self.print_info(stock, s_line, type=:linear, p_line=nil)
+  def self.print_info(stock, s_line, p_line=nil)
+
     return if s_line.nil?
     base_price = stock.deal.nil? ? stock.y_close : stock.deal
     return if base_price.nil?
@@ -349,14 +350,14 @@ class CalcTrendingHelper
       pd = p_line.index_date
       pl = p_line.base.round(2)
       print ",#{pd},#{pl}"
-      if :exp == type
+      if :exp == stock.trending_type
         pg = (Math.exp(p_line.get_point(s_line.index)) - Math.exp(s_line.base)) * 100 / Math.exp(s_line.base)
       else
         pg = (p_line.get_point(s_line.index) - s_line.base) * 100 / s_line.base
       end
     end
 
-    if :exp == type
+    if :exp == stock.trending_type
       puts ",exp"
       day_diff = (Math.exp(s_line.diff) - 1) * s_line.get_point(-1)
       day_diff = day_diff.round(5)
@@ -409,14 +410,14 @@ class CalcTrendingHelper
     candis = support_lines[:candis]
 
     return nil, nil if candis.empty?
-    CalcTrendingHelper.print_info(stock, support_lines[:score], stock.trending_type)
-    CalcTrendingHelper.print_info(stock, support_lines[:points], stock.trending_type)
+    CalcTrendingHelper.print_info(stock, support_lines[:score])
+    CalcTrendingHelper.print_info(stock, support_lines[:points])
     for i in (0..candis.size()) do
       s_line = candis[i]
       p_line = pressure_lines[i]
       #p_line could be nil if pressure line too close to support line
       next if p_line.nil?
-      CalcTrendingHelper.print_info(stock, s_line, stock.trending_type, p_line)
+      CalcTrendingHelper.print_info(stock, s_line, p_line)
     end
     puts Time.now
     return support_lines, pressure_lines
@@ -461,7 +462,7 @@ class TrendingCalculator
     end_date = Date.today
     begin_date = stock.trending_base_date
     return if begin_date == end_date and not AStockMarket.is_now_after_trading_time?
-    extended = stock.extend_history!(begin_date, end_date)
+    extended = TrendingCalculator.generate_history!(stock, begin_date, end_date)
     return if not extended
     gap_trading_days = stock.history.getTradingDays(begin_date, end_date)
     # end_date include then we should minus 1 for gap
@@ -490,7 +491,7 @@ class TrendingCalculator
     dates = [start_date, end_date, amp_date]
     dates.sort!
     begin_date = dates[0]
-    stock.extend_history!(dates[0], dates[-1])
+    extended = TrendingCalculator.generate_history!(stock, begin_date, end_date)
     calcBeginDate, calcBeginPrice, dayPriceDiff, trendingAmp =
                                                  calc(
                                                    stock,

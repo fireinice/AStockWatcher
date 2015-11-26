@@ -48,16 +48,18 @@ def filter_by_deal_diff(stocks, infos, accept_ratio)
   accept_range =Range.new(0, accept_ratio)
   ret_infos = {}
   infos.each do |ref, value|
-
     support_lines = value[0]
     pressure_lines = value[1]
     stock = stocks[ref]
+    break if stock.nil?
     next if stock.deal.nil? # skip stop trading stock
+    stock.trending_type = :exp
     s_lines = []
     p_lines = []
     support_lines[:candis].each.with_index do |line, i|
       # skip if line above price now more than 5% or below than 5%
-      diff = (stock.deal-line.get_point(-1)).abs
+      # diff = (stock.deal-line.get_point(-1)).abs
+      diff = (stock.deal - Math.exp(line.get_point(-1))).abs
       next if not accept_range.cover?(diff/stock.deal)
       s_lines << line
       p_lines << pressure_lines[i]
