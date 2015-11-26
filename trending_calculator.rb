@@ -20,6 +20,9 @@ class Stock
 end
 
 class IndexLine
+  @@sh = StockHistory.new(Stock.new('600000'), [])
+  @@today = Date.today
+
   def initialize(index, base, diff)
     @index = index
     @base = base
@@ -43,6 +46,14 @@ class IndexLine
 
   attr_reader :index, :base, :diff
   attr_accessor :v_index, :v_point, :index_date, :v_date, :score, :type
+
+  def up_to_today!(stock)
+    @@sh = StockHistory.new(stock, []) if stock.ref_value != @@sh.stock.ref_value
+    @@sh.extend_history!(index_date, @@today)
+    days = @@sh.getTradingDays(index_date, @@today)
+    @v_index = @v_index - @index - days if not @v_index.nil?
+    @index = -days
+  end
 
   def get_diff(index)
     @diff * (index - @index)
@@ -513,10 +524,11 @@ class TrendingCalculator
     end_date = end_date + 1 if AStockMarket.is_now_after_trading_time?
     update_trending(stock) if end_date > stock.trending_base_date
     if :exp == stock.trending_type
-      gap = current_price - Math.exp(stock.trending_line)
+      trending_price = Math.exp(stock.trending_line)
     else
-      gap = current_price - stock.trending_line
+      trending_price = stock.trending_line
     end
+    gap = current_price - trending_price
     gap_ratio = gap * 100 / current_price
     if gap < 0
       amp = stock.trending_line - stock.trending_amp
@@ -527,7 +539,7 @@ class TrendingCalculator
     end
     amp = Math.exp(amp) if :exp == stock.trending_type
     amp_ratio = (current_price - amp) * 100 / current_price
-    return [stock.trending_line, gap_ratio, amp, amp_ratio, amp_type]
+    return [trending_price, gap_ratio, amp, amp_ratio, amp_type]
   end
 
   def self.calc(stock, begLineDate, begLinePrice, endLineDate, endLinePrice, highLineDate, highLinePrice)

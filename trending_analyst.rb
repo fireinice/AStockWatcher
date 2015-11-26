@@ -59,10 +59,11 @@ def filter_by_deal_diff(stocks, infos, accept_ratio)
     support_lines[:candis].each.with_index do |line, i|
       # skip if line above price now more than 5% or below than 5%
       # diff = (stock.deal-line.get_point(-1)).abs
+      line.up_to_today!(stock)
       diff = (stock.deal - Math.exp(line.get_point(-1))).abs
       next if not accept_range.cover?(diff/stock.deal)
       s_lines << line
-      p_lines << pressure_lines[i]
+      p_lines << pressure_lines[i].up_to_today!(stock)
     end
     next if s_lines.empty?
     ret_infos[ref] = infos[ref]

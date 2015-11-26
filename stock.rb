@@ -47,6 +47,8 @@ class StockHistory
     @stock = stock
   end
 
+  attr_reader :stock
+
   def records
     records = []
     @dates.each do |date|
@@ -59,19 +61,22 @@ class StockHistory
     @dates
   end
 
-  def self.build_history(stock, begin_date, end_date)
+  def self.build_history(begin_date, end_date)
     records = @@interface.get_status(stock, begin_date, end_date)
     return nil if records.nil? or records.empty?
     self.new(stock, records)
   end
 
-  def extend_history!(stock, begin_date, end_date)
-    @stock = stock
+  def extend_history!(begin_date, end_date)
     need_extend = false
-    begin_date < @dates[0] ? need_extend = true : begin_date = @dates[0]
-    end_date > @dates[-1] ? need_extend = true : end_date = @dates[-1]
+    if @dates.nil? or @dates.empty?
+      need_extend = true
+    else
+      begin_date < @dates[0] ? need_extend = true : begin_date = @dates[0]
+      end_date > @dates[-1] ? need_extend = true : end_date = @dates[-1]
+    end
     return if not need_extend
-    records_list = @@interface.get_status(stock, begin_date, end_date)
+    records_list = @@interface.get_status(@stock, begin_date, end_date)
     return nil if records_list.nil?
     @records = {}
     @dates = []
@@ -80,7 +85,7 @@ class StockHistory
   end
 
   def get_records_by_range(begin_date, end_date)
-    extend_history!(@stock, begin_date, end_date) if not @stock.nil?
+    extend_history!(begin_date, end_date) if not @stock.nil?
     @records.values.select{ |record| record.date <= end_date and record.date >= begin_date }
   end
 
@@ -89,14 +94,14 @@ class StockHistory
   end
 
   def set_record_by_date!(date, value)
-    extend_history!(@stock, date, @dates[-1]) if date < @dates[0] if not @stock.nil?
-    extend_history!(@stock, @dates[0], date) if date > @dates[-1] if not @stock.nil?
+    extend_history!(date, @dates[-1]) if date < @dates[0] if not @stock.nil?
+    extend_history!(@dates[0], date) if date > @dates[-1] if not @stock.nil?
     @records[date] = value
   end
 
   def get_record_by_date(date)
-    extend_history!(@stock, date, @dates[-1]) if date < @dates[0] if not @stock.nil?
-    extend_history!(@stock, @dates[0], date) if date > @dates[-1] if not @stock.nil?
+    extend_history!(date, @dates[-1]) if date < @dates[0] if not @stock.nil?
+    extend_history!(@dates[0], date) if date > @dates[-1] if not @stock.nil?
     @records[date]
   end
 
@@ -173,10 +178,10 @@ class Stock
 
   def extend_history!(begin_date, end_date)
     if not hasHistory?
-      @history = StockHistory.build_history(self, begin_date, end_date)
+      @history = StockHistory.build_history(begin_date, end_date)
       return false if @history.nil?
     else
-      ret = @history.extend_history!(self, begin_date, end_date)
+      ret = @history.extend_history!(begin_date, end_date)
       return false if ret.nil?
     end
     return true
