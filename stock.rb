@@ -61,7 +61,7 @@ class StockHistory
     @dates
   end
 
-  def self.build_history(begin_date, end_date)
+  def self.build_history(stock, begin_date, end_date)
     records = @@interface.get_status(stock, begin_date, end_date)
     return nil if records.nil? or records.empty?
     self.new(stock, records)
@@ -178,7 +178,7 @@ class Stock
 
   def extend_history!(begin_date, end_date)
     if not hasHistory?
-      @history = StockHistory.build_history(begin_date, end_date)
+      @history = StockHistory.build_history(self, begin_date, end_date)
       return false if @history.nil?
     else
       ret = @history.extend_history!(begin_date, end_date)

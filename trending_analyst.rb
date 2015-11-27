@@ -62,8 +62,9 @@ def filter_by_deal_diff(stocks, infos, accept_ratio)
       line.up_to_today!(stock)
       diff = (stock.deal - Math.exp(line.get_point(-1))).abs
       next if not accept_range.cover?(diff/stock.deal)
+      pressure_lines[i].up_to_today!(stock) if not pressure_lines[i].nil?
       s_lines << line
-      p_lines << pressure_lines[i].up_to_today!(stock)
+      p_lines << pressure_lines[i]
     end
     next if s_lines.empty?
     ret_infos[ref] = infos[ref]

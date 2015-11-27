@@ -8,9 +8,16 @@ require_relative "stock_record"
 class WebInterface
   def self.fetch_data(url)
     uri = URI.parse(url)
+    res = nil
     http = Net::HTTP.new(uri.host)
+    http.read_timeout = 3
     http.open_timeout = 5
-    res = Net::HTTP.get_response(uri)
+    begin
+      res = http.request_get(uri.request_uri)
+    rescue Net::ReadTimeout, Net::OpenTimeout
+      sleep(1)
+      retry
+    end
     remote_data = res.body if res.is_a?(Net::HTTPSuccess)
   end
 end
