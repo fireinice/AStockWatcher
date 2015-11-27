@@ -23,7 +23,7 @@ class WebInterface
 end
 
 
-class StockHistoryBase
+class StockHistoryBase < WebInterface
   #http://table.finance.yahoo.com/table.csv?a=0&b=1&c=2012&d=3&e=19&f=2012&s=600000.ss
   # @@decoder = Iconv.new("UTF-8//IGNORE", "GBK//IGNORE")
   @@base_url = "http://table.finance.yahoo.com/table.csv"
@@ -51,14 +51,6 @@ class StockHistoryBase
     infos['f'] = endDate.year
     infos['s'] = stockName
     url = @@base_url + "?" + URI.encode_www_form(infos)
-  end
-
-  def self.fetch_data(url)
-    uri = URI.parse(url)
-    http = Net::HTTP.new(uri.host)
-    http.open_timeout = 5
-    res = Net::HTTP.get_response(uri)
-    remote_data = res.body if res.is_a?(Net::HTTPSuccess)
   end
 
   def self.get_status(stock, begDate, endDate)

@@ -27,6 +27,7 @@ class IndexLine
     @index = index
     @base = base
     @diff = diff
+    @update_date = @@today
   end
 
   def self.init_with_points(index1, point1, date1, index2, point2,date2)
@@ -44,15 +45,16 @@ class IndexLine
     (o.get_point(@index) - @base).round(10) == 0 and (@diff - o.diff).round(10) == 0
   end
 
-  attr_reader :index, :base, :diff
+  attr_reader :index, :base, :diff, :update_date
   attr_accessor :v_index, :v_point, :index_date, :v_date, :score, :type
 
   def up_to_today!(stock)
     @@sh = StockHistory.new(stock, []) if stock.ref_value != @@sh.stock.ref_value
-    @@sh.extend_history!(index_date, @@today)
+    return if @update_date >= @@today
+    @@sh.extend_history!(@update_date, @@today)
     days = @@sh.getTradingDays(index_date, @@today)
-    @v_index = @v_index - @index - days if not @v_index.nil?
-    @index = -days
+    @v_index = @v_index - days + 1 if not @v_index.nil?
+    @index = @index - days + 1 if not @index.nil?
   end
 
   def get_diff(index)
@@ -61,6 +63,10 @@ class IndexLine
 
   def get_point(index)
     @base + get_diff(index)
+  end
+
+  def last_point()
+    get_point(-1)
   end
 end
 
@@ -320,7 +326,7 @@ class CalcTrendingHelper
         high_score_line = line
         high_score = score.score
       end
-      next if not accept_range.cover?(line.get_point(-1))
+      next if not accept_range.cover?(line.last_point)
       # skip if the line across less than 10 points and less than 15 segs
       next if score.points < 10 and score.segs < 15
       # skip if too many days is below the support line
@@ -370,13 +376,13 @@ class CalcTrendingHelper
 
     if :exp == stock.trending_type
       puts ",exp"
-      day_diff = (Math.exp(s_line.diff) - 1) * s_line.get_point(-1)
+      day_diff = (Math.exp(s_line.diff) - 1) * s_line.last_point
       day_diff = day_diff.round(5)
-      tg = (base_price - Math.exp(s_line.get_point(-1))) * 100/ Math.exp(s_line.get_point(-1))
+      tg = (base_price - Math.exp(s_line.last_point)) * 100/ Math.exp(s_line.last_point)
     else
       puts",line"
       day_diff = s_line.diff.round(2)
-      tg = (base_price - s_line.get_point(-1)) * 100/ s_line.get_point(-1)
+      tg = (base_price - s_line.last_point) * 100/ s_line.last_point
     end
 
     print "日差:#{day_diff} , 回归差：#{tg.round(2)}%"
