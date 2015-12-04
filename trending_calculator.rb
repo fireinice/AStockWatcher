@@ -509,8 +509,7 @@ class TrendingCalculator
                    end_date, end_price, amp_date, amp_price, trending_type)
     dates = [start_date, end_date, amp_date]
     dates.sort!
-    begin_date = dates[0]
-    extended = TrendingCalculator.generate_history!(stock, begin_date, end_date)
+    extended = TrendingCalculator.generate_history!(stock, dates[0], dates[-1])
     calcBeginDate, calcBeginPrice, dayPriceDiff, trendingAmp =
                                                  calc(
                                                    stock,
