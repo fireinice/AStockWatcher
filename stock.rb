@@ -116,9 +116,10 @@ class StockHistory
 
   def getTradingDays(begin_date, end_date)
     count = 0
-    if begin_date > end_date
+    if begin_date > end_date or @dates.empty? or @dates.nil?
       return 0
     end
+
     if @dates[0] > begin_date
       #or  @dates[-1] < endStr #yesterday maybe not a trading
       return -1

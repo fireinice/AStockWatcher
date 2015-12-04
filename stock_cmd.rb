@@ -453,7 +453,7 @@ if $0 == __FILE__
         tradingLineEndPrice = s[4].to_f
         ampLineDate = Date.parse(s[5])
         ampLinePrice = s[6].to_f
-        trendingType = s[7].to_s
+        trendingType = s[7].to_sym
         stock = cfg_file.getStock(market, code)
         TrendingCalculator.analyze(
           stock, tradingLineBeginDate, tradingLineBeginPrice,

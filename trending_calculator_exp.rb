@@ -14,7 +14,7 @@ class TrendingCalculatorAdapter
       value.close = Math.log(value.close)
       stock.history.set_record_by_date!(date, value)
       value = stock.history.get_record_by_date(date)
-      stock.trending_type = :exp
+      stock.trending_type = :exp if not stock.trending_type
     end
   end
 end

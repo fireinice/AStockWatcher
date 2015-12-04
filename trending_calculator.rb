@@ -493,7 +493,9 @@ class TrendingCalculator
     gap_trading_days -= 1 if not stock.history.is_trading_day?(stock.trending_base_date)
     return if gap_trading_days <= 0
     trending_line = stock.trending_line + stock.day_price_diff * gap_trading_days
-    if self.adapter_exists?
+    if stock.trending_type
+      trending_type = stock.trending_type
+    elsif self.adapter_exists?
       trending_type = :exp
     else
       trending_type = :linear
