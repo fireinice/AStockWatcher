@@ -44,6 +44,8 @@ class StockHistory
     @dates = []
     records_list.each { |record| @dates << record.date; @records[record.date] = record }
     @dates.sort!
+    @start_date = @dates[0]
+    @end_date = @dates[-1]
     @stock = stock
   end
 
@@ -82,6 +84,8 @@ class StockHistory
     @dates = []
     records_list.each { |record| @dates << record.date; @records[record.date] = record }
     @dates.sort!
+    @start_date = begin_date
+    @end_date = end_date
   end
 
   def get_records_by_range(begin_date, end_date)
@@ -117,12 +121,12 @@ class StockHistory
   def getTradingDays(begin_date, end_date)
     count = 0
     if begin_date > end_date or @dates.empty? or @dates.nil?
-      return 0
+      return nil
     end
 
-    if @dates[0] > begin_date
-      #or  @dates[-1] < endStr #yesterday maybe not a trading
-      return -1
+    if @start_date > begin_date or @end_date < end_date
+      extended = self.extend_history!(begin_date, end_date)
+      return nil if not extended
     end
 
     today = Date.today

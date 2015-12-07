@@ -51,10 +51,11 @@ class IndexLine
   def up_to_today!(stock)
     @@sh = StockHistory.new(stock, []) if stock.ref_value != @@sh.stock.ref_value
     return if @update_date >= @@today
-    @@sh.extend_history!(@update_date, @@today)
-    days = @@sh.getTradingDays(index_date, @@today)
+    days = @@sh.getTradingDays(@update_date, @@today)
+    return nil if days.nil?
     @v_index = @v_index - days + 1 if not @v_index.nil?
     @index = @index - days + 1 if not @index.nil?
+    @update_date = @@today
   end
 
   def get_diff(index)
@@ -127,6 +128,11 @@ class CalcTrendingHelper
       self
     end
 
+    def minus_too_high_score!(date)
+      #删除之前出现的过高的点
+      @calc_base_num -= 1
+    end
+
     def add_seg_score!(date)
       @score += 1 * self.date_score(date)
       @segs += 1
@@ -137,7 +143,8 @@ class CalcTrendingHelper
   class DaySegments
     def initialize(record, trading_days, type)
       @record = record
-      if :exp == type
+      @trending_type = type
+      if :exp == @trending_type
         @point_delta = Math.log(1+0.001)
       else
         @point_delta = record.adj_low * 0.001
@@ -171,6 +178,11 @@ class CalcTrendingHelper
       point = line.get_point(self.index)
       s = Score.new()
       s.minus_below_score!(@date) if @record.adj_close < point
+      too_high_point = point * 1.2
+      if :exp == @trending_type
+        too_high_point = point + Math.log(1.2)
+      end
+      s.minus_too_high_score!(@date) if @record.adj_close > too_high_point
 
       @point_segs.each do |seg|
         return s.add_point_score!(@date) if seg.cover?(point)
@@ -330,7 +342,7 @@ class CalcTrendingHelper
       # skip if the line across less than 10 points and less than 15 segs
       next if score.points < 10 and score.segs < 15
       # skip if too many days is below the support line
-      next if score.belows > @calc_day_infos.size / 3
+      next if score.belows > score.calc_base_num / 3
       candis << line
       # break
     end
