@@ -80,16 +80,19 @@ class CalcTrendingHelper
       # fixme below应该只算支撑线后部分的
       @belows = 0
       @score = 0
+      @too_high_days = 0
     end
 
+    attr_reader :too_high_days
     attr_accessor :segs, :points, :score, :belows, :calc_base_num
 
     def plus!(other)
       if not other.nil?
-        self.score += other.score
-        self.segs += other.segs
-        self.points += other.points
-        self.belows += other.belows
+        @score += other.score
+        @segs += other.segs
+        @points += other.points
+        @belows += other.belows
+        @too_high_days += other.too_high_days
       end
       self
     end
@@ -128,9 +131,9 @@ class CalcTrendingHelper
       self
     end
 
-    def minus_too_high_score!(date)
+    def minus_too_high_day!(date)
       #删除之前出现的过高的点
-      @calc_base_num -= 1
+      @too_high_days += 1
     end
 
     def add_seg_score!(date)
@@ -182,7 +185,7 @@ class CalcTrendingHelper
       if :exp == @trending_type
         too_high_point = point + Math.log(1.2)
       end
-      s.minus_too_high_score!(@date) if @record.adj_close > too_high_point
+      s.minus_too_high_day!(@date) if @record.adj_close > too_high_point
 
       @point_segs.each do |seg|
         return s.add_point_score!(@date) if seg.cover?(point)
@@ -328,7 +331,7 @@ class CalcTrendingHelper
     end
     candi_lines.each do |line|
       score = @calc_day_infos.reduce(Score.new) { |memo, info| memo.plus!(info.score(line)) }
-      score.calc_base_num = @calc_day_infos.size
+      score.calc_base_num = @calc_day_infos.size - score.too_high_days
       line.score = score
       if score.points > high_points
         high_points_line = line
@@ -388,16 +391,20 @@ class CalcTrendingHelper
 
     if :exp == stock.trending_type
       puts ",exp"
-      day_diff = (Math.exp(s_line.diff) - 1) * s_line.last_point
+      day_diff = (Math.exp(s_line.diff) - 1) * Math.exp(s_line.last_point)
       day_diff = day_diff.round(5)
+      day_diff_ratio = day_diff * 100 / Math.exp(s_line.last_point)
+      day_diff_ratio = day_diff_ratio.round(5) 
       tg = (base_price - Math.exp(s_line.last_point)) * 100/ Math.exp(s_line.last_point)
     else
       puts",line"
       day_diff = s_line.diff.round(2)
+      day_diff_ratio = day_diff * 100 / s_line.last_point
+      day_diff_ratio = day_diff_ratio.round(5)
       tg = (base_price - s_line.last_point) * 100/ s_line.last_point
     end
 
-    print "日差:#{day_diff} , 回归差：#{tg.round(2)}%"
+    print "日差:#{day_diff}, 日涨幅:#{day_diff_ratio}, 回归差：#{tg.round(2)}%"
     if not p_line.nil?
       puts ",压力差: #{pg.round(2)}%"
     else
