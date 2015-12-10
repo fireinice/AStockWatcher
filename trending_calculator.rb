@@ -155,10 +155,10 @@ class CalcTrendingHelper
       @days_gap = trading_days
       @date = record.date
       info = []
-      info << record.adj_open.round(2)
-      info << record.adj_close.round(2)
-      info << record.adj_high.round(2)
-      info << record.adj_low.round(2)
+      info << record.adj_open.round(10)
+      info << record.adj_close.round(10)
+      info << record.adj_high.round(10)
+      info << record.adj_low.round(10)
       info.sort!
       @low1, @low2, @high1, @high2 = info
       @segs = []
@@ -394,7 +394,7 @@ class CalcTrendingHelper
       day_diff = (Math.exp(s_line.diff) - 1) * Math.exp(s_line.last_point)
       day_diff = day_diff.round(5)
       day_diff_ratio = day_diff * 100 / Math.exp(s_line.last_point)
-      day_diff_ratio = day_diff_ratio.round(5) 
+      day_diff_ratio = day_diff_ratio.round(5)
       tg = (base_price - Math.exp(s_line.last_point)) * 100/ Math.exp(s_line.last_point)
     else
       puts",line"

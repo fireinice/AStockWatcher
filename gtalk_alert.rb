@@ -40,7 +40,12 @@ class GtalkAlert
   def self.send(user_name, password, phones, content)
     phones = [phones] if not phones.is_a?(Array)
     phones.each do |phone|
-      @@gtalk.message(phone.strip,"#{content}")
+      begin
+        tries ||= 5
+        @@gtalk.message(phone.strip,"#{content}")
+      rescue IOError
+        retry unless (tries -= 1).zero?
+      end
     end
     return nil
   end
