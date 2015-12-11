@@ -384,7 +384,6 @@ class CalcTrendingHelper
   end
 
   def self.print_info(stock, s_line, p_line=nil)
-
     return if s_line.nil?
     base_price = stock.deal.nil? ? stock.y_close : stock.deal
     return if base_price.nil?
@@ -401,27 +400,20 @@ class CalcTrendingHelper
       pd = p_line.index_date
       pl = p_line.base.round(2)
       print ",#{pd},#{pl}"
-      if :exp == stock.trending_type
-        pg = (Math.exp(p_line.get_point(s_line.index)) - Math.exp(s_line.base)) * 100 / Math.exp(s_line.base)
-      else
-        pg = (p_line.get_point(s_line.index) - s_line.base) * 100 / s_line.base
-      end
+      pg = stock.get_real_price((p_line.get_point(s_line.index)) - stock.get_real_price(s_line.base)) * 100 / stock.get_real_price(s_line.base)
     end
 
+    day_diff = (stock.get_real_price(s_line.diff) - 1) * stock.get_real_price(s_line.last_point)
     if :exp == stock.trending_type
       puts ",exp"
-      day_diff = (Math.exp(s_line.diff) - 1) * Math.exp(s_line.last_point)
       day_diff = day_diff.round(5)
-      day_diff_ratio = day_diff * 100 / Math.exp(s_line.last_point)
-      day_diff_ratio = day_diff_ratio.round(5)
-      tg = (base_price - Math.exp(s_line.last_point)) * 100/ Math.exp(s_line.last_point)
     else
       puts",line"
       day_diff = s_line.diff.round(2)
-      day_diff_ratio = day_diff * 100 / s_line.last_point
-      day_diff_ratio = day_diff_ratio.round(5)
-      tg = (base_price - s_line.last_point) * 100/ s_line.last_point
     end
+    day_diff_ratio = day_diff * 100 / stock.get_real_price(s_line.last_point)
+    day_diff_ratio = day_diff_ratio.round(5)
+    tg = (base_price - stock.get_real_price(s_line.last_point)) * 100/ stock.get_real_price(s_line.last_point)
 
     print "日差:#{day_diff}, 日涨幅:#{day_diff_ratio}, 回归差：#{tg.round(2)}%"
     if not p_line.nil?
@@ -568,11 +560,7 @@ class TrendingCalculator
     end_date = Date.today
     end_date = end_date + 1 if AStockMarket.is_now_after_trading_time?
     update_trending(stock) if end_date > stock.trending_base_date
-    if :exp == stock.trending_type
-      trending_price = Math.exp(stock.trending_line)
-    else
-      trending_price = stock.trending_line
-    end
+    trending_price = stock.trending_price
     gap = current_price - trending_price
     gap_ratio = gap * 100 / current_price
     if gap < 0
@@ -582,7 +570,7 @@ class TrendingCalculator
       amp = stock.trending_line + stock.trending_amp
       amp_type = 'u'
     end
-    amp = Math.exp(amp) if :exp == stock.trending_type
+    amp = stock.get_real_price(amp)
     amp_ratio = (current_price - amp) * 100 / current_price
     return [trending_price, gap_ratio, amp, amp_ratio, amp_type]
   end

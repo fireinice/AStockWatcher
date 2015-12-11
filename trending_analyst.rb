@@ -4,6 +4,25 @@ require_relative "trending_calculator"
 require_relative "qq_interface"
 require_relative "ctxalgo_interface"
 
+class Stock
+  attr_accessor :industy, :concept
+end
+
+
+class MongoInterface
+  require "mongo"
+  def self.get_status(code)
+    client = Mongo::Client.new('mongodb://127.0.0.1:27017/scrapy')
+    code = code[2:] if code.start_with?('s')
+    ret_list = []
+    client[:stocks].find(:code => "600337").each do |item|
+      ret_list << item
+    end
+    raise "more than one code matched" unless 1 == ret_list.length
+    ret_list[0]
+  end
+end
+
 def sort_by_points(infos)
   line_infos = {}
   s_lines = []
@@ -31,6 +50,12 @@ def formatted_print(stocks, infos)
     stock = stocks[ref]
     puts "=========="
     puts "#{stock.name}, PE:#{stock.pe}, PB:#{stock.pb}"
+    for item in stock.industy
+      puts "industy: #{item}"
+    end
+    for item in stock.concept
+      puts "concept: #{item}"
+    end
     # puts StockPlate.get_status(stock)
     CalcTrendingHelper.print_info(stock, support_lines[:score])
     CalcTrendingHelper.print_info(stock, support_lines[:points])
@@ -60,7 +85,7 @@ def filter_by_deal_diff(stocks, infos, accept_ratio)
       # skip if line above price now more than 5% or below than 5%
       # diff = (stock.deal-line.get_point(-1)).abs
       line.up_to_today!(stock)
-      diff = (stock.deal - Math.exp(line.last_point)).abs
+      diff = (stock.deal - stock.get_real_price(line.last_point)).abs
       next if not accept_range.cover?(diff/stock.deal)
       pressure_lines[i].up_to_today!(stock) if not pressure_lines[i].nil?
       s_lines << line
@@ -81,6 +106,9 @@ if $0 == __FILE__
 
   infos.each_key do |ref|
     stocks[ref] = Stock.new(ref[2..-1])
+    result = MongoInterface.get_status(ref[2..-1))
+    stock.industy = result["industy"]
+    stock.concept = result["concept"]
   end
 
   stock_infos = QQTradingDay.get_status_batch(stocks.values)
