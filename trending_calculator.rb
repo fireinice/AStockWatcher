@@ -180,10 +180,10 @@ class CalcTrendingHelper
       @record = record
       @trending_type = type
       if :exp == @trending_type
-        @point_delta = Math.log(1+0.001)
-        accuracy = 5
+        @point_delta = Math.log(1+0.0002)
+        accuracy = 8
       else
-        @point_delta = record.adj_low * 0.001
+        @point_delta = record.adj_low * 0.0002
         accuracy = 2
       end
       @days_gap = trading_days
@@ -262,6 +262,8 @@ class CalcTrendingHelper
         line = IndexLine.init_with_points(
           prev.index, p, prev.date, back.index, b, back.date)
         line.type = :exp
+        #已经小于统计误差，失去意义
+        continue if line.diff < 0.001
         lines << line
       end
     end
@@ -421,7 +423,7 @@ class CalcTrendingHelper
     day_diff = (stock.get_real_price(s_line.diff, 5) - 1) * stock.get_real_price(s_line.last_point, 5)
     if :exp == stock.trending_type
       puts ",exp"
-      day_diff = day_diff.round(10)
+      day_diff = day_diff.round(5)
     else
       puts",line"
       day_diff = s_line.diff.round(2)
