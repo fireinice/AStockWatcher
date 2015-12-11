@@ -33,9 +33,9 @@ class Stock
     @trending_type = trending_type
   end
 
-  def get_real_price(input)
+  def get_real_price(input, accuracy=2)
     input = Math.exp(input) if :exp == @trending_type
-    input.round(2)
+    input.round(accuracy)
   end
 
   def trending_price
@@ -415,10 +415,10 @@ class CalcTrendingHelper
       pd = p_line.index_date
       pl = p_line.base.round(2)
       print ",#{pd},#{pl}"
-      pg = stock.get_real_price((p_line.get_point(s_line.index)) - stock.get_real_price(s_line.base)) * 100 / stock.get_real_price(s_line.base)
+      pg = (stock.get_real_price(p_line.get_point(s_line.index), 5) - stock.get_real_price(s_line.base, 5)) * 100 / stock.get_real_price(s_line.base, 5)
     end
 
-    day_diff = (stock.get_real_price(s_line.diff) - 1) * stock.get_real_price(s_line.last_point)
+    day_diff = (stock.get_real_price(s_line.diff, 5) - 1) * stock.get_real_price(s_line.last_point, 5)
     if :exp == stock.trending_type
       puts ",exp"
       day_diff = day_diff.round(5)
@@ -426,9 +426,9 @@ class CalcTrendingHelper
       puts",line"
       day_diff = s_line.diff.round(2)
     end
-    day_diff_ratio = day_diff * 100 / stock.get_real_price(s_line.last_point)
+    day_diff_ratio = day_diff * 100 / stock.get_real_price(s_line.last_point,5)
     day_diff_ratio = day_diff_ratio.round(5)
-    tg = (base_price - stock.get_real_price(s_line.last_point)) * 100/ stock.get_real_price(s_line.last_point)
+    tg = (base_price - stock.get_real_price(s_line.last_point,5)) * 100/ stock.get_real_price(s_line.last_point,5)
 
     print "日差:#{day_diff}, 日涨幅:#{day_diff_ratio}, 回归差：#{tg.round(2)}%"
     if not p_line.nil?
@@ -594,7 +594,7 @@ class TrendingCalculator
       amp = stock.trending_line + stock.trending_amp
       amp_type = 'u'
     end
-    amp = stock.get_real_price(amp)
+    amp = stock.get_real_price(amp, 5)
     amp_ratio = (current_price - amp) * 100 / current_price
     return [trending_price, gap_ratio, amp, amp_ratio, amp_type]
   end
