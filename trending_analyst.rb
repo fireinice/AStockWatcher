@@ -4,24 +4,6 @@ require_relative "trending_calculator"
 require_relative "qq_interface"
 require_relative "ctxalgo_interface"
 
-class Stock
-  attr_accessor :industy, :concept
-end
-
-
-class MongoInterface
-  require "mongo"
-  def self.get_status(code)
-    client = Mongo::Client.new('mongodb://127.0.0.1:27017/scrapy')
-    code = code[2:] if code.start_with?('s')
-    ret_list = []
-    client[:stocks].find(:code => "600337").each do |item|
-      ret_list << item
-    end
-    raise "more than one code matched" unless 1 == ret_list.length
-    ret_list[0]
-  end
-end
 
 def sort_by_points(infos)
   line_infos = {}
@@ -50,11 +32,15 @@ def formatted_print(stocks, infos)
     stock = stocks[ref]
     puts "=========="
     puts "#{stock.name}, PE:#{stock.pe}, PB:#{stock.pb}"
-    for item in stock.industy
-      puts "industy: #{item}"
+    if not stock.industry.nil?
+      for item in stock.industry
+        puts "industry: #{item}"
+      end
     end
-    for item in stock.concept
-      puts "concept: #{item}"
+    if not stock.concept.nil?
+      for item in stock.concept
+        puts "concept: #{item}"
+      end
     end
     # puts StockPlate.get_status(stock)
     CalcTrendingHelper.print_info(stock, support_lines[:score])
@@ -106,9 +92,9 @@ if $0 == __FILE__
 
   infos.each_key do |ref|
     stocks[ref] = Stock.new(ref[2..-1])
-    result = MongoInterface.get_status(ref[2..-1))
-    stock.industy = result["industy"]
-    stock.concept = result["concept"]
+    result = MongoInterface.get_status(ref[2..-1])
+    stocks[ref].industry = result["industry"]
+    stocks[ref].concept = result["concept"]
   end
 
   stock_infos = QQTradingDay.get_status_batch(stocks.values)

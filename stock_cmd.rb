@@ -519,6 +519,9 @@ if $0 == __FILE__
           market = ref[0..1]
           code = ref[2..-1]
           stock = Stock.new(code, market)
+          result = MongoInterface.get_status(ref[2..-1])
+          stocks[ref].industry = result["industry"]
+          stocks[ref].concept = result["concept"]
           # TrendingCalculator.calc_trending(stock)
           infos = TrendingCalculator.calc_trending(stock)
           next if infos.nil?

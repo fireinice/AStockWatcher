@@ -5,9 +5,24 @@ require_relative "stock"
 require_relative "interface"
 require_relative "trending_calculator_exp"
 
+class MongoInterface
+  require "mongo"
+  Mongo::Logger.logger.level = ::Logger::FATAL
+  def self.get_status(code)
+    client = Mongo::Client.new('mongodb://127.0.0.1:27017/scrapy')
+    code = code[2..-1] if code.start_with?('s')
+    ret_list = []
+    client[:stocks].find(:code => code).each do |item|
+      ret_list << item
+    end
+    raise "more than one code matched" unless 1 == ret_list.length
+    ret_list[0]
+  end
+end
+
 class Stock
   attr_reader :trending_base_date, :trending_line, :day_price_diff, :trending_amp
-  attr_accessor :trending_type
+  attr_accessor :trending_type, :industry, :concept
 
   def update_trending_info(trending_base_date, trending_line,
                            day_price_diff, trending_amp, trending_type=:linear)
@@ -453,7 +468,16 @@ class CalcTrendingHelper
 
     puts "============"
     puts "#{stock.name}, #{stock.code}"
-
+    if not stock.industry.nil?
+      for item in stock.industry
+        puts "industry: #{item}"
+      end
+    end
+    if not stock.concept.nil?
+      for item in stock.concept
+        puts "concept: #{item}"
+      end
+    end
     candis = support_lines[:candis]
 
     return nil, nil if candis.empty?
