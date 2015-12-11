@@ -8,11 +8,12 @@ require_relative "trending_calculator_exp"
 class MongoInterface
   require "mongo"
   Mongo::Logger.logger.level = ::Logger::FATAL
+  @@client = Mongo::Client.new('mongodb://127.0.0.1:27017/scrapy')
+
   def self.get_status(code)
-    client = Mongo::Client.new('mongodb://127.0.0.1:27017/scrapy')
     code = code[2..-1] if code.start_with?('s')
     ret_list = []
-    client[:stocks].find(:code => code).each do |item|
+    @@client[:stocks].find(:code => code).each do |item|
       ret_list << item
     end
     raise "more than one code matched" unless 1 == ret_list.length
@@ -252,10 +253,14 @@ class CalcTrendingHelper
     case type
     when :high
       prev_points << prev.high1
-      back_points << prev.high2 if 0 != (prev.high1 - back.high2).round(10)
+      prev_points << prev.high2 if 0 != (prev.high1 - prev.high2).round(10)
+      back_points << back.high1
+      back_points << back.high2 if 0 != (back.high1 - back.high2).round(10)
     when :low
       prev_points << prev.low1
-      back_points << prev.low2 if 0 != (prev.low1 - back.low2).round(10)
+      prev_points << prev.low2 if 0 != (prev.low1 - prev.low2).round(10)
+      back_points << back.low1
+      back_points << back.low2 if 0 != (back.low1 - back.low2).round(10)
     end
     prev_points.each do |p|
       back_points.each do |b|
@@ -263,7 +268,7 @@ class CalcTrendingHelper
           prev.index, p, prev.date, back.index, b, back.date)
         line.type = :exp
         #已经小于统计误差，失去意义
-        continue if line.diff < 0.001
+        next if line.diff < 0.001
         lines << line
       end
     end
