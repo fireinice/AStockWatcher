@@ -6,6 +6,7 @@ require_relative "interface"
 
 class TrendingCalculatorAdapter
   def self.to_inner!(stock)
+    stock.trending_type = :exp
     for date in stock.history.trading_days do
       value = stock.history.get_record_by_date(date)
       value.high = Math.log(value.high)

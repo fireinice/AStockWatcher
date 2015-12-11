@@ -30,28 +30,8 @@ def formatted_print(stocks, infos)
     support_lines = value[0]
     pressure_lines = value[1]
     stock = stocks[ref]
-    puts "=========="
-    puts "#{stock.name}, PE:#{stock.pe}, PB:#{stock.pb}"
-    if not stock.industry.nil?
-      for item in stock.industry
-        puts "industry: #{item}"
-      end
-    end
-    if not stock.concept.nil?
-      for item in stock.concept
-        puts "concept: #{item}"
-      end
-    end
-    # puts StockPlate.get_status(stock)
-    CalcTrendingHelper.print_info(stock, support_lines[:score])
-    CalcTrendingHelper.print_info(stock, support_lines[:points])
-    for i in (0..support_lines[:candis].size()) do
-      s_line = support_lines[:candis][i]
-      p_line = pressure_lines[i]
-      #p_line could be nil if pressure line too close to support line
-      next if p_line.nil?
-      CalcTrendingHelper.print_info(stock, s_line, p_line)
-    end
+    CalcTrendingHelper.print_stock_lines_info(
+      stock, support_lines, pressure_lines)
   end
 end
 

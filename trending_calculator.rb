@@ -25,12 +25,12 @@ class Stock
   attr_accessor :trending_type, :industry, :concept
 
   def update_trending_info(trending_base_date, trending_line,
-                           day_price_diff, trending_amp, trending_type=:linear)
+                           day_price_diff, trending_amp, trending_type=nil)
     @trending_base_date = trending_base_date
     @trending_line = trending_line
     @day_price_diff = day_price_diff
     @trending_amp = trending_amp
-    @trending_type = trending_type
+    @trending_type = trending_type unless trending_type.nil?
   end
 
   def get_real_price(input, accuracy=2)
@@ -398,7 +398,7 @@ class CalcTrendingHelper
     return lines
   end
 
-  def self.print_info(stock, s_line, p_line=nil)
+  def self.print_line_info(stock, s_line, p_line=nil)
     return if s_line.nil?
     base_price = stock.deal.nil? ? stock.y_close : stock.deal
     return if base_price.nil?
@@ -421,7 +421,7 @@ class CalcTrendingHelper
     day_diff = (stock.get_real_price(s_line.diff, 5) - 1) * stock.get_real_price(s_line.last_point, 5)
     if :exp == stock.trending_type
       puts ",exp"
-      day_diff = day_diff.round(5)
+      day_diff = day_diff.round(10)
     else
       puts",line"
       day_diff = s_line.diff.round(2)
@@ -447,6 +447,34 @@ class CalcTrendingHelper
     #如果diff很大，对前面的结果是有利的，但是不利于后面的情况，反之亦然
   end
 
+  def self.print_stock_lines_info(stock, support_lines, pressure_lines)
+    puts "============"
+    puts "#{stock.name}, #{stock.code}"
+    if not stock.industry.nil?
+      for item in stock.industry
+        puts "industry: #{item}"
+      end
+    end
+    if not stock.concept.nil?
+      for item in stock.concept
+        puts "concept: #{item}"
+      end
+    end
+    candis = support_lines[:candis]
+
+    return nil, nil if candis.empty?
+    CalcTrendingHelper.print_line_info(stock, support_lines[:score])
+    CalcTrendingHelper.print_line_info(stock, support_lines[:points])
+    for i in (0..candis.size()) do
+      s_line = candis[i]
+      p_line = pressure_lines[i]
+      #p_line could be nil if pressure line too close to support line
+      next if p_line.nil?
+      CalcTrendingHelper.print_line_info(stock, s_line, p_line)
+    end
+    puts Time.now
+  end
+
   def calc(stock)
     high_increment_lines = []
     low_increment_lines = []
@@ -465,32 +493,8 @@ class CalcTrendingHelper
 
     pressure_lines = calc_pressure_lines(support_lines[:candis], stock.trending_type)
     stock.update_trading!()
+    CalcTrendingHelper.print_stock_lines_info(stock, support_lines, pressure_lines)
 
-    puts "============"
-    puts "#{stock.name}, #{stock.code}"
-    if not stock.industry.nil?
-      for item in stock.industry
-        puts "industry: #{item}"
-      end
-    end
-    if not stock.concept.nil?
-      for item in stock.concept
-        puts "concept: #{item}"
-      end
-    end
-    candis = support_lines[:candis]
-
-    return nil, nil if candis.empty?
-    CalcTrendingHelper.print_info(stock, support_lines[:score])
-    CalcTrendingHelper.print_info(stock, support_lines[:points])
-    for i in (0..candis.size()) do
-      s_line = candis[i]
-      p_line = pressure_lines[i]
-      #p_line could be nil if pressure line too close to support line
-      next if p_line.nil?
-      CalcTrendingHelper.print_info(stock, s_line, p_line)
-    end
-    puts Time.now
     return support_lines, pressure_lines
   end
 end
@@ -547,16 +551,9 @@ class TrendingCalculator
     gap_trading_days -= 1 if not stock.history.is_trading_day?(stock.trending_base_date)
     return if gap_trading_days <= 0
     trending_line = stock.trending_line + stock.day_price_diff * gap_trading_days
-    if stock.trending_type
-      trending_type = stock.trending_type
-    elsif self.adapter_exists?
-      trending_type = :exp
-    else
-      trending_type = :linear
-    end
     stock.update_trending_info(end_date, trending_line,
                                stock.day_price_diff,
-                               stock.trending_amp, trending_type)
+                               stock.trending_amp)
   end
 
   def self.analyze(stock, start_date, start_price,
@@ -571,7 +568,7 @@ class TrendingCalculator
                                                    end_date, end_price,
                                                    amp_date, amp_price)
     if not calcBeginDate.nil?
-      stock.update_trending_info(calcBeginDate, calcBeginPrice, dayPriceDiff, trendingAmp, trending_type)
+      stock.update_trending_info(calcBeginDate, calcBeginPrice, dayPriceDiff, trendingAmp)
     else
       puts "date error"
     end
