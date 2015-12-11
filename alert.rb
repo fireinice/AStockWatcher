@@ -103,14 +103,13 @@ class AlertManager
       end
       if stock.class.method_defined?(:trending_line) and stock.trending_line
         desc = "支撑线"
-        trending_alert = Alert.new(user, stock, stock.trending_line, AlertType::Dynamic, desc)
+        trending_alert = Alert.new(user, stock, stock.trending_price,
+                                   AlertType::Dynamic, desc)
         desc = "压力线"
-        upper_alert = Alert.new(user, stock,
-                                stock.trending_line + stock.trending_amp,
+        upper_alert = Alert.new(user, stock, stock.pressure_price,
                                 AlertType::Dynamic, desc)
         desc = "通道线"
-        lower_alert = Alert.new(user, stock,
-                                stock.trending_line - stock.trending_amp,
+        lower_alert = Alert.new(user, stock, stock.channel_price,
                                 AlertType::Dynamic, desc)
         add_alert(trending_alert)
         add_alert(upper_alert)
@@ -130,10 +129,10 @@ class AlertManager
     content = "#{stock.name}#{act}#{alert.price.round(2)}#{alert.desc},价格#{stock.deal.round(2)},"
     content += "顾比#{stock.gbrc_line.round(2)}," if stock.respond_to?(:gbrc_line) and stock.gbrc_line
     if stock.respond_to?(:trending_line) and stock.trending_line
-      content += "支撑#{stock.trending_line.round(2)},压力#{ (stock.trending_line + stock.trending_amp).round(2)},通道#{(stock.trending_line - stock.trending_amp).round(2)},"
+      content += "支撑#{stock.trending_price},压力#{ (stock.pressure_price)},通道#{(stock.channel_price)},"
     end
     content += Time.now.strftime('%R')
-    
+
     # SMSBao.send_to(alert.user.phone, content)
     @@logger.info("#{content}")
     GtalkAlert.send_to(alert.user.phone, content)

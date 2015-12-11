@@ -17,6 +17,23 @@ class Stock
     @trending_amp = trending_amp
     @trending_type = trending_type
   end
+
+  def get_real_price(input)
+    input = Math.exp(input) if :exp == @trending_type
+    input.round(2)
+  end
+
+  def trending_price
+    get_real_price(@trending_line)
+  end
+
+  def channel_price
+    get_real_price(@trending_line - @trending_amp)
+  end
+
+  def pressure_price
+    get_real_price(@trending_line + @trending_amp)
+  end
 end
 
 class IndexLine
@@ -149,16 +166,18 @@ class CalcTrendingHelper
       @trending_type = type
       if :exp == @trending_type
         @point_delta = Math.log(1+0.001)
+        accuracy = 5
       else
         @point_delta = record.adj_low * 0.001
+        accuracy = 2
       end
       @days_gap = trading_days
       @date = record.date
       info = []
-      info << record.adj_open.round(10)
-      info << record.adj_close.round(10)
-      info << record.adj_high.round(10)
-      info << record.adj_low.round(10)
+      info << record.adj_open.round(accuracy)
+      info << record.adj_close.round(accuracy)
+      info << record.adj_high.round(accuracy)
+      info << record.adj_low.round(accuracy)
       info.sort!
       @low1, @low2, @high1, @high2 = info
       @segs = []
