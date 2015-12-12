@@ -4,6 +4,7 @@ gem "terminal-table"
 gem "colorize"
 gem 'easy-gtalk-bot'
 gem 'gtalk'
+gem 'mongo'
 
 group :development do
   gem "rspec"
