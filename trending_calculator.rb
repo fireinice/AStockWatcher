@@ -23,7 +23,7 @@ end
 
 class Stock
   attr_reader :trending_base_date, :trending_line, :day_price_diff, :trending_amp
-  attr_accessor :trending_type, :industry, :concept
+  attr_accessor :trending_type, :industry, :concept, :qq_sectors
 
   def update_trending_info(trending_base_date, trending_line,
                            day_price_diff, trending_amp, trending_type=nil)
@@ -457,14 +457,11 @@ class CalcTrendingHelper
   def self.print_stock_lines_info(stock, support_lines, pressure_lines)
     puts "============"
     puts "#{stock.name}, #{stock.code}"
-    if not stock.industry.nil?
-      for item in stock.industry
-        puts "industry: #{item}"
-      end
-    end
-    if not stock.concept.nil?
-      for item in stock.concept
-        puts "concept: #{item}"
+    for sector in %w(@industry, @concept, @qq_sectors)
+      if stock.instance_variable_defined?(sector)
+        for item in stock.instance_variable_get(sector)
+          puts "#{sector[1:]}: #{item}"
+        end
       end
     end
     candis = support_lines[:candis]
