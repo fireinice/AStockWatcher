@@ -457,10 +457,12 @@ class CalcTrendingHelper
   def self.print_stock_lines_info(stock, support_lines, pressure_lines)
     puts "============"
     puts "#{stock.name}, #{stock.code}"
-    for sector in %w(@industry, @concept, @qq_sectors)
+    for sector in %w(@industry @concept @qq_sectors)
       if stock.instance_variable_defined?(sector)
-        for item in stock.instance_variable_get(sector)
-          puts "#{sector[1:]}: #{item}"
+        items = stock.instance_variable_get(sector)
+        next if items.nil?
+        for item in items
+          puts "#{sector[1..-1]}: #{item}"
         end
       end
     end
@@ -497,8 +499,8 @@ class CalcTrendingHelper
 
     pressure_lines = calc_pressure_lines(support_lines[:candis], stock.trending_type)
     stock.update_trading!()
+    stocks.qq_sectors = MongoInterface.get_status(stock.code)['qq_sector']
     CalcTrendingHelper.print_stock_lines_info(stock, support_lines, pressure_lines)
-
     return support_lines, pressure_lines
   end
 end
