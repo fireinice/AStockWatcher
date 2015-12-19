@@ -543,6 +543,7 @@ class TrendingCalculator
       not stock.day_price_diff or not stock.trending_amp
     end_date = Date.today
     begin_date = stock.trending_base_date
+    return if begin_date >= end_date
     return if begin_date == end_date and not AStockMarket.is_now_after_trading_time?
     extended = TrendingCalculator.generate_history!(stock, begin_date, end_date)
     return if not extended
