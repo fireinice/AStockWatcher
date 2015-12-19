@@ -73,8 +73,9 @@ if $0 == __FILE__
   infos.each_key do |ref|
     stocks[ref] = Stock.new(ref[2..-1])
     result = MongoInterface.get_status(ref[2..-1])
-    stocks[ref].industry = result["industry"]
-    stocks[ref].concept = result["concept"]
+    # stocks[ref].industry = result["industry"]
+    # stocks[ref].concept = result["concept"]
+    stocks[ref].qq_sectors = result["qq_sector"]
   end
 
   stock_infos = QQTradingDay.get_status_batch(stocks.values)
