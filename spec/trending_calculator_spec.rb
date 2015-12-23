@@ -284,6 +284,7 @@ describe "trending calculator" do
     stock_hash[:y_close] = "14.56"
     stock_hash[:t_open] = "14.00"
     stock_hash[:date] = "2015-05-29"
+    allow(Date).to receive(:today).and_return(Date.new(2015,12,12))
     allow(YahooHistory).to receive(:fetch_data).and_return(HISTORY_STR)
     allow(SinaTradingDay).to receive(:get_status).and_return(stock_hash)
     TrendingCalculator.calc_trending(stock)

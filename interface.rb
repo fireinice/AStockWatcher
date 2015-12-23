@@ -24,6 +24,7 @@ end
 
 
 class StockHistoryBase < WebInterface
+  #http://api.finance.ifeng.com/akdaily/?code=sh000001&type=last
   #http://table.finance.yahoo.com/table.csv?a=0&b=1&c=2012&d=3&e=19&f=2012&s=600000.ss
   # @@decoder = Iconv.new("UTF-8//IGNORE", "GBK//IGNORE")
   @@base_url = "http://table.finance.yahoo.com/table.csv"

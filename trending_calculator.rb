@@ -16,6 +16,7 @@ class MongoInterface
     @@client[:stocks].find(:code => code).each do |item|
       ret_list << item
     end
+    return nil  if ret_list.empty?
     raise "more than one code matched" unless 1 == ret_list.length
     ret_list[0]
   end
@@ -114,9 +115,12 @@ class CalcTrendingHelper
       @belows = 0
       @score = 0
       @too_high_days = 0
+      @belows_variance = 0
+      @aboves_variance = 0
+      @aboves = 0
     end
 
-    attr_reader :too_high_days
+    attr_reader :too_high_days, :aboves, :aboves_variance, :belows_variance
     attr_accessor :segs, :points, :score, :belows, :calc_base_num
 
     def plus!(other)
@@ -125,6 +129,9 @@ class CalcTrendingHelper
         @segs += other.segs
         @points += other.points
         @belows += other.belows
+        @aboves += other.aboves
+        @belows_variance += other.belows_variance
+        @aboves_variance += other.aboves_variance
         @too_high_days += other.too_high_days
       end
       self
@@ -143,6 +150,25 @@ class CalcTrendingHelper
         s.belows = self.belows + s.belows
       end
       s
+    end
+
+    def get_belows_variance
+      Math.sqrt(@belows_variance/@belows)
+    end
+
+    def get_aboves_variance
+      Math.sqrt(@aboves_variance/@aboves)
+    end
+
+    def score_point!(date, base, real, accuracy, too_high_point)
+      if real + accuracy < base
+        @belows_variance += (base - real) ** 2
+        minus_below_score!(date)
+      else
+        @aboves_variance += (base - real) ** 2
+        @aboves += 1
+      end
+      minus_too_high_day!(@date) if real > too_high_point
     end
 
     def date_score(date)
@@ -215,13 +241,11 @@ class CalcTrendingHelper
     def score(line)
       point = line.get_point(self.index)
       s = Score.new()
-      s.minus_below_score!(@date) if @record.adj_close < point
       too_high_point = point * 1.2
       if :exp == @trending_type
         too_high_point = point + Math.log(1.2)
       end
-      s.minus_too_high_day!(@date) if @record.adj_close > too_high_point
-
+      s.score_point!(@date, point, @record.adj_close, @point_delta, too_high_point)
       @point_segs.each do |seg|
         return s.add_point_score!(@date) if seg.cover?(point)
       end
@@ -443,7 +467,7 @@ class CalcTrendingHelper
     else
       puts ""
     end
-    puts "支撑分数: #{sscore.score.round(2)}, 支撑点数: #{sscore.points}, 支撑线数：#{sscore.segs}, 跌破比例：#{sscore.belows}/#{sscore.calc_base_num}"
+    puts "支撑分数: #{sscore.score.round(2)}, 支撑点数: #{sscore.points}, 支撑线数：#{sscore.segs}, 跌破比例：#{sscore.belows}/#{sscore.calc_base_num}, 线上标准差：#{(sscore.get_aboves_variance).round(4)}, 线下标准差: #{(sscore.get_belows_variance).round(4)}"
     # puts s_line.index, s_line.base, s_line.diff, s_line.v_index, s_line.v_point
     puts "--------"
   end
@@ -499,7 +523,9 @@ class CalcTrendingHelper
 
     pressure_lines = calc_pressure_lines(support_lines[:candis], stock.trending_type)
     stock.update_trading!()
-    stocks.qq_sectors = MongoInterface.get_status(stock.code)['qq_sector']
+    stock.qq_sectors = nil
+    mongo_item = MongoInterface.get_status(stock.code)
+    stock.qq_sectors = mongo_item['qq_sector'] unless mongo_item.nil?
     CalcTrendingHelper.print_stock_lines_info(stock, support_lines, pressure_lines)
     return support_lines, pressure_lines
   end
