@@ -153,22 +153,23 @@ class CalcTrendingHelper
     end
 
     def get_belows_variance
-      Math.sqrt(@belows_variance/@belows)
+      Math.sqrt(@belows_variance/@belows-1)
     end
 
     def get_aboves_variance
-      Math.sqrt(@aboves_variance/@aboves)
+      Math.sqrt(@aboves_variance/@aboves-1)
     end
 
     def score_point!(date, base, real, accuracy, too_high_point)
       if real + accuracy < base
         @belows_variance += (base - real) ** 2
         minus_below_score!(date)
-      else
+      elsif real < too_high_point
         @aboves_variance += (base - real) ** 2
         @aboves += 1
+      else
+        minus_too_high_day!(@date)
       end
-      minus_too_high_day!(@date) if real > too_high_point
     end
 
     def date_score(date)
