@@ -117,10 +117,13 @@ class CalcTrendingHelper
       @too_high_days = 0
       @belows_variance = 0
       @aboves_variance = 0
+      @belows_sum = 0
+      @aboves_sum = 0
       @aboves = 0
     end
 
-    attr_reader :too_high_days, :aboves, :aboves_variance, :belows_variance
+    attr_reader :too_high_days, :aboves, :aboves_variance, :belows_variance,
+                :belows_sum, :aboves_sum
     attr_accessor :segs, :points, :score, :belows, :calc_base_num
 
     def plus!(other)
@@ -132,6 +135,8 @@ class CalcTrendingHelper
         @aboves += other.aboves
         @belows_variance += other.belows_variance
         @aboves_variance += other.aboves_variance
+        @belows_sum += other.belows_sum
+        @aboves_sum += other.aboves_sum
         @too_high_days += other.too_high_days
       end
       self
@@ -152,20 +157,29 @@ class CalcTrendingHelper
       s
     end
 
-    def get_belows_variance
-      Math.sqrt(@belows_variance/@belows-1)
+    def get_belows_volatility
+      #https://www.zhihu.com/question/19770602
+      volatility = (
+        Math.sqrt(
+        (@belows_variance/@belows)-(@belows_sum**2)/(@belows*(@belows+1))) * 100)
+      volatility.round(2)
     end
 
-    def get_aboves_variance
-      Math.sqrt(@aboves_variance/@aboves-1)
+    def get_aboves_volatility
+      volatility = (
+        Math.sqrt(
+        (@aboves_variance/@aboves)-(@aboves_sum**2)/(@aboves*(@aboves+1))) * 100)
+      volatility.round(2)
     end
 
     def score_point!(date, base, real, accuracy, too_high_point)
       if real + accuracy < base
         @belows_variance += (base - real) ** 2
+        @belows_sum += (base - real)
         minus_below_score!(date)
       elsif real < too_high_point
         @aboves_variance += (base - real) ** 2
+        @aboves_sum += (base - real)
         @aboves += 1
       else
         minus_too_high_day!(@date)
@@ -468,7 +482,12 @@ class CalcTrendingHelper
     else
       puts ""
     end
-    puts "支撑分数: #{sscore.score.round(2)}, 支撑点数: #{sscore.points}, 支撑线数：#{sscore.segs}, 跌破比例：#{sscore.belows}/#{sscore.calc_base_num}, 线上标准差：#{(sscore.get_aboves_variance).round(4)}, 线下标准差: #{(sscore.get_belows_variance).round(4)}"
+    print "支撑分数: #{sscore.score.round(2)}, 支撑点数: #{sscore.points}, 支撑线数：#{sscore.segs}, 跌破比例：#{sscore.belows}/#{sscore.calc_base_num}"
+    if :exp == stock.trending_type
+      puts "，线上波动率：#{(sscore.get_aboves_volatility)}, 线下波动率: #{(sscore.get_belows_volatility)}"
+    else
+      puts ""
+    end
     # puts s_line.index, s_line.base, s_line.diff, s_line.v_index, s_line.v_point
     puts "--------"
   end
