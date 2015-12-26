@@ -7,9 +7,14 @@ DATA_PATH="${SCRIPT_PATH}/data"
 
 BASE_PATH=$(dirname "${SCRIPT_PATH}")
 SPEC_PATH="${BASE_PATH}/spec"
+SPEC_FILE=${SPEC_PATH}/trending_calculator_spec.rb
+
+
+SPEC_DESC="should draw line for a stock"
+SPEC_LINE_NUM=`grep -n "${SPEC_DESC}" ${SPEC_FILE} | cut -d ':' -f 1`
 
 echo -n "running spec ..."
-rspec ${SPEC_PATH}/trending_calculator_spec.rb 1>${DATA_PATH}/out 2>&1
+rspec ${SPEC_FILE} ${SPEC_FILE}:${SPEC_LINE_NUM} 1>${DATA_PATH}/out 2>&1
 pid=$!
 wait ${pid}
 echo "done"

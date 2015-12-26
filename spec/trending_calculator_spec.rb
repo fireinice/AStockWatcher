@@ -268,6 +268,23 @@ Date,Open,High,Low,Close,Volume,Adj Close
 2014-11-12,9.00,9.30,8.91,9.29,5508900,9.29
 """
 
+HISTORY_STR3=
+"""
+2015-11-11,12.34,12.96,12.34,12.96,1480000,12.96
+2015-11-12,12.96,13.61,12.96,13.61,1480000,13.61
+2015-11-13,13.61,14.29,13.61,14.29,1480000,14.29
+2015-11-14,14.29,15.0,14.29,15.0,1480000,15.0
+2015-11-15,15.0,15.75,15.0,15.75,1480000,15.75
+2015-11-16,15.75,16.54,15.75,16.54,1480000,16.54
+2015-11-17,16.54,17.37,16.54,17.37,1480000,17.37
+2015-11-18,17.37,18.24,17.37,18.24,1480000,18.24
+2015-11-19,18.24,19.15,18.24,19.15,1480000,19.15
+2015-11-20,19.15,20.11,19.15,20.11,1480000,20.11
+2015-11-21,20.11,21.12,20.11,21.12,1480000,21.12
+2015-11-22,21.12,22.18,21.12,22.18,1480000,22.18
+2015-11-23,22.18,23.29,22.18,23.29,1480000,23.29
+"""
+
 describe "trending calculator" do
   # it "should calc trending" do
   #   stock = Stock.new("600000")
@@ -286,6 +303,22 @@ describe "trending calculator" do
     stock_hash[:date] = "2015-05-29"
     allow(Date).to receive(:today).and_return(Date.new(2015,12,12))
     allow(YahooHistory).to receive(:fetch_data).and_return(HISTORY_STR)
+    allow(SinaTradingDay).to receive(:get_status).and_return(stock_hash)
+    TrendingCalculator.calc_trending(stock)
+  end
+
+  it "should get volatility for a stock" do
+    stock = Stock.new("002602", "sz")
+    end_date = Date.parse("150511")
+    begin_date = end_date - 6 * 30
+    stock_hash = {}
+    stock_hash[:name] = "英力特"
+    stock_hash[:deal] = "12.34"
+    stock_hash[:y_close] = "12.34"
+    stock_hash[:t_open] = "12.34"
+    stock_hash[:date] = "2015-05-29"
+    allow(Date).to receive(:today).and_return(Date.new(2015,12,12))
+    allow(YahooHistory).to receive(:fetch_data).and_return(HISTORY_STR3)
     allow(SinaTradingDay).to receive(:get_status).and_return(stock_hash)
     TrendingCalculator.calc_trending(stock)
   end

@@ -157,31 +157,41 @@ class CalcTrendingHelper
       s
     end
 
+    def get_aboves_average
+      return 0 if @aboves == 0
+      average_ratio = (Math.exp(@aboves_sum/@aboves)-1) * 100
+      average_ratio.round(2)
+    end
+
+    def get_belows_average
+      return 0 if @belows == 0
+      average_ratio = (Math.exp(@belows_sum/@belows)-1) * 100
+      average_ratio.round(2)
+    end
+
     def get_belows_volatility
       #https://www.zhihu.com/question/19770602
       return 0 if @belows == 0
-      volatility = (
-        Math.sqrt(
-        (@belows_variance/@belows)-(@belows_sum**2)/(@belows*(@belows+1))) * 100)
+      volatility = Math.sqrt(
+        (@belows_variance-(@belows_sum**2)/@belows)*100/@belows)
       volatility.round(2)
     end
 
     def get_aboves_volatility
       return 0 if @aboves == 0
-      volatility = (
-        Math.sqrt(
-        (@aboves_variance/@aboves)-(@aboves_sum**2)/(@aboves*(@aboves+1))) * 100)
+      volatility = Math.sqrt(
+        (@aboves_variance-(@aboves_sum**2)/@aboves)*100/@aboves)
       volatility.round(2)
     end
 
     def score_point!(date, base, real, accuracy, too_high_point)
       if real + accuracy < base
         @belows_variance += (base - real) ** 2
-        @belows_sum += (base - real)
+        @belows_sum += (base - real).abs
         minus_below_score!(date)
       elsif real < too_high_point
         @aboves_variance += (base - real) ** 2
-        @aboves_sum += (base - real)
+        @aboves_sum += (real-base).abs
         @aboves += 1
       else
         minus_too_high_day!(@date)
@@ -486,7 +496,7 @@ class CalcTrendingHelper
     end
     print "支撑分数: #{sscore.score.round(2)}, 支撑点数: #{sscore.points}, 支撑线数：#{sscore.segs}, 跌破比例：#{sscore.belows}/#{sscore.calc_base_num}"
     if :exp == stock.trending_type
-      puts "，线上波动率：#{(sscore.get_aboves_volatility)}, 线下波动率: #{(sscore.get_belows_volatility)}"
+      puts "，线上波动率：#{(sscore.get_aboves_volatility)}, 线上平均变动率#{sscore.get_aboves_average}, 线下波动率: #{(sscore.get_belows_volatility)}, 线上平均变动率#{sscore.get_belows_average}"
     else
       puts ""
     end
