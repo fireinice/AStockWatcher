@@ -173,14 +173,14 @@ class CalcTrendingHelper
       #https://www.zhihu.com/question/19770602
       return 0 if @belows == 0
       volatility = Math.sqrt(
-        (@belows_variance-(@belows_sum**2)/@belows)*100/@belows)
+        (@belows_variance-(@belows_sum**2)/@belows)/@belows)*100
       volatility.round(2)
     end
 
     def get_aboves_volatility
       return 0 if @aboves == 0
       volatility = Math.sqrt(
-        (@aboves_variance-(@aboves_sum**2)/@aboves)*100/@aboves)
+        (@aboves_variance-(@aboves_sum**2)/@aboves)/@aboves)*100
       volatility.round(2)
     end
 
