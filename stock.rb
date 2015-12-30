@@ -152,7 +152,7 @@ class Stock
   @@interface = SinaTradingDay
 
   def initialize(code, market=nil)
-    if code.nil? or code.length != 6
+    if code.nil? or (code.length < 5 or code.length > 6)
       raise ArgumentError, "Bad data"
     end
     code, market = Stock.parse_code(code) if market.nil?
@@ -167,7 +167,13 @@ class Stock
 
   def self.parse_code code
     v = []
-    mkt = code.start_with?('6') ? 'sh' : 'sz'
+    if code.length() == 5
+      mkt = "hk"
+    elsif code.start_with?('6')
+      mkt = "sh"
+    else
+      mkt = "sz"
+    end
     return code, mkt
   end
 

@@ -13,6 +13,7 @@ require_relative "trending_calculator"
 require_relative "alert"
 require_relative "user"
 require_relative "ctxalgo_interface"
+require_relative "mongo_interface"
 
 def htmlTint(str, type, *bool_ref)
   # type: 1=>"title",2=>"profit"
@@ -410,13 +411,12 @@ if $0 == __FILE__
   opts = nil
   begin
     OptionParser.new do |opts|
-      code_parser = lambda {|s| v = []; mkt = s.start_with?('6') ? 'sh' : 'sz'; v << mkt <<  s; }
       opts.banner = "Usage: #$0 [options]"
       opts.separator ""
       opts.separator "Specific options:"
 
       opts.on("-a", "--add-stock [CODE],[BUY_PRICE],[BUY_QUANTITY]", Array, "Add a stock") do |s|
-        v = code_parser.call(s[0])
+        v = Stock.parse_code(s[0])
         v<< s[1].to_f
         v<< s[2].to_i
         cfg_file.addStock(*v)
@@ -434,7 +434,7 @@ if $0 == __FILE__
       end
 
       opts.on("-g","--analyze-gbrc [CODE]", String, "analysis a stock with GuBi Revese Count Line") do |s|
-        v = code_parser.call(s)
+        v = Stock.parse_code(s)
         market = v[0]
         code = v[1]
         stock = cfg_file.getStock(market, code)
@@ -444,7 +444,7 @@ if $0 == __FILE__
       end
 
       opts.on("-n", "--analyze-trending [CODE],[TradingLineStartDate],[TradingLineStartPrice],[TradingLineEndDate],[TradingLineEndPrice],[AmpLineDate],[AmpLinePrice],[TrendingType],", Array, "analysis a stock with trading line info") do |s|
-        v = code_parser.call(s[0])
+        v = Stock.parse_code(s[0])
         market = v[0]
         code = v[1]
         tradingLineBeginDate = Date.parse(s[1])
@@ -465,7 +465,7 @@ if $0 == __FILE__
       end
 
       opts.on("-d", "--delete-stock [CODE]", String, "delete a stock") do |s|
-        v = code_parser.call(s)
+        v = Stock.parse_code(s)
         alert_manager = YAML.load(File.open(cfg_file.cfg["Alert"]["config"]))
         user = User.new(cfg_file.cfg["User"]["phone"])
         alert_manager.remove_alerts(user, cfg_file.getStock(*v))
@@ -508,6 +508,27 @@ if $0 == __FILE__
         all_stocks.each do |stock|
           stock.update_day_trading_info!(infos[stock.code])
           puts "#{stock.code} #{stock.name}"
+        end
+        exit(0)
+      end
+
+      opts.on("-k", "--scan-hk",  "scan all hk stocks") do
+        info_hash = {}
+        stocks = HKStocksList.get_status()
+        market = "hk"
+        stocks.each do |ref|
+          code = ref
+          stock = Stock.new(code, market)
+          stock.qq_sectors = nil
+          mongo_item = MongoInterface.get_status(stock.code)
+          stock.qq_sectors = mongo_item['qq_sector'] unless mongo_item.nil?
+          # TrendingCalculator.calc_trending(stock)
+          infos = TrendingCalculator.calc_trending(stock)
+          next if infos.nil?
+          info_hash[stock.ref_value] = infos
+        end
+        File.open( "trending_scan_hk.yml", 'w' ) do |out|
+          YAML.dump(info_hash , out )
         end
         exit(0)
       end
