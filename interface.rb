@@ -40,10 +40,11 @@ class StockHistoryBase < WebInterface
 
   def self.get_url(stock, beginDate, endDate)
     market = stock.market
-    if stock.market == 'sh'
-      market = 'ss'
-    end
-    stockName = stock.code + "." + market
+    market = 'ss' if stock.market == 'sh'
+    code = stock.code
+    code = code[1..-1] if code.start_with?('0')
+
+    stockName = code + "." + market
     infos = {}
     infos['a'] = beginDate.mon - 1
     infos['b'] = beginDate.mday
