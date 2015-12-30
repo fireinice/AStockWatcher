@@ -14,7 +14,8 @@ class WebInterface
     http.open_timeout = 5
     begin
       res = http.request_get(uri.request_uri)
-    rescue Net::ReadTimeout, Net::OpenTimeout, Zlib::BufError, SocketError
+    # rescue Net::ReadTimeout, Net::OpenTimeout, Zlib::BufError, SocketError
+    rescue
       sleep(1)
       retry
     end
