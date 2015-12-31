@@ -66,7 +66,11 @@ def filter_by_deal_diff(stocks, infos, accept_ratio)
 end
 
 if $0 == __FILE__
-  infos = YAML.load(File.open("trending_scan.yml"))
+  if "hk" == $1
+    infos = YAML.load(File.open("trending_scan_hk.yml"))
+  else
+    infos = YAML.load(File.open("trending_scan.yml"))
+  end
   Stock.interface = QQTradingDay
   stocks = {}
 
