@@ -101,27 +101,56 @@ class YahooHistory < StockHistoryBase
   @@base_url = "http://table.finance.yahoo.com/table.csv"
 end
 
+class TradingDay < WebInterface
+  @@decoder = Iconv.new("UTF-8//IGNORE", "GBK//IGNORE")
+  @@base_url = nil
+  @@inter_name = nil
+  @@inter_name_hk = nil
+  @@inter_keys_hk = nil
+  @@inter_keys = nil
+  @@hk_realtime_prefix = nil
 
-class SinaTradingDay
+  def self.get_url(stock_list)
+    stock_infos = []
+    stock_list.each do |stock|
+      str = ""
+      str += @@hk_realtime_prefix if "hk" == stock.market
+      str += stock.market + stock.code
+      stock_infos << str
+    end
+    url = @@base_url + stock_infos.join(",")
+  end
+
+end
+
+class SinaTradingDay < WebInterface
   @@decoder = Iconv.new("UTF-8//IGNORE", "GBK//IGNORE")
   @@base_url = "http://hq.sinajs.cn/list="
   @@inter_name = ["股票名", "今开", "昨收", "报价", "最高价", "最低价", "竞买", "竞卖", "成交量",
                   "成交金额", "买一量", "买一", "买二量", "买二", "买三量", "买三", "买四量", "买四",
                   "买五量", "买五", "卖一量", "卖一", "卖二量", "卖二", "卖三量", "卖三",
                   "卖四量", "卖四", "卖五量", "卖五", "日期", "时间"]
+  @@inter_name_hk = %w(英文名 中文名 今开 昨收 最高价 最低价 报价 涨跌 振幅 竞买 竞卖 成交金额 成交量 市盈率 周息 年高点 年低点 日期 时间)
+  @@inter_keys_hk = %i(name_e name t_open y_close high low deal change change_ratio buy sell turnover vol pe wir year_high year_low date time)
   @@inter_keys = %i( name t_open y_close deal high low buy sell vol turnover buy_vol1 buy1 buy_vol2 buy2 buy_vol3 buy3 buy_vol4 buy4 buy_vol5 buy5 sell_vol1 sell1 sell_vol2 sell2 sell_vol3 sell3 sell_vol4 sell4 sell_vol5 sell5 date time )
   # http://hq.sinajs.cn/list=sz002238,sz000033
 
+  @@hk_realtime_prefix = "rt_"
   def self.get_url(stock_list)
     stock_infos = []
-    stock_list.each { |stock| stock_infos << stock.market + stock.code  }
+    stock_list.each do |stock|
+      str = ""
+      str = "rt_" if "hk" == stock.market
+      str += stock.market + stock.code
+      stock_infos << str
+    end
     url = @@base_url + stock_infos.join(",")
   end
 
   def self.fetch_data(stock_list)
     url = self.get_url(stock_list)
     # remote_data = @fetchAgent.get_file(url)
-    remote_data = Net::HTTP.get URI.parse(url)
+    remote_data = self.fetch_data(url)
     remote_data = @@decoder.iconv(remote_data)
   end
 
@@ -144,18 +173,31 @@ class SinaTradingDay
     info_hash = {}
     rdata.split("\n").each do |data_line|
       data_list = data_line.split("=")
+      market = data_list[0][/sz|sh|hk/]
       code = data_list[0][/\d+/]
       info_str = data_list[1].delete("\";")
       infos = info_str.split(",")
       stock_info = {}
+      keys = @@inter_keys
+      keys = @@inter_keys_hk if market == "hk"
+      raise "data format not as expected" unless keys.size == infos.size
       infos.each_index do |i|
         v = infos[i]
         # v = v[0..-3] if @@inter_keys[i].to_s.include?("vol")
         # v = v[0..-5] if
-        stock_info[@@inter_keys[i]] = v
+        stock_info[keys[i]] = v
       end
       info_hash[code] = stock_info
     end
     return info_hash
   end
+end
+
+if $0 == __FILE__
+  require_relative "stock"
+  code = "00001"
+  market = "hk"
+  stock = Stock.new(code, market)
+  stock.update_trading!()
+  puts stock.deal
 end

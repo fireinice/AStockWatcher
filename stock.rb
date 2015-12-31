@@ -15,6 +15,7 @@
 #
 require "net/http"
 require "uri"
+require "date"
 require_relative "stock_record"
 require_relative "interface"
 
@@ -152,7 +153,7 @@ class Stock
   @@interface = SinaTradingDay
 
   def initialize(code, market=nil)
-    if code.nil? or (code.length < 5 or code.length > 6)
+    if code.nil? or (code.size < 5 or code.size > 6)
       raise ArgumentError, "Bad data"
     end
     code, market = Stock.parse_code(code) if market.nil?
