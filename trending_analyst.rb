@@ -66,7 +66,8 @@ def filter_by_deal_diff(stocks, infos, accept_ratio)
 end
 
 if $0 == __FILE__
-  if "hk" == $1
+  if "hk" == ARGV[0]
+    puts "hk"
     infos = YAML.load(File.open("trending_scan_hk.yml"))
   else
     infos = YAML.load(File.open("trending_scan.yml"))
@@ -79,12 +80,12 @@ if $0 == __FILE__
     result = MongoInterface.get_status(ref[2..-1])
     # stocks[ref].industry = result["industry"]
     # stocks[ref].concept = result["concept"]
-    stocks[ref].qq_sectors = result["qq_sector"]
+    stocks[ref].qq_sectors = result["qq_sector"] if result
   end
 
   stock_infos = QQTradingDay.get_status_batch(stocks.values)
 
-  stocks.each_value { |stock| stock.update_day_trading_info!(stock_infos[stock.ref_value])}
+  stocks.each_value { |stock| stock.update_day_trading_info!(stock_infos[stock.code])}
 
   infos = filter_by_deal_diff(stocks, infos, 0.05)
   infos = sort_by_points(infos)

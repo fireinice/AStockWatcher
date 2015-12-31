@@ -17,9 +17,10 @@ class GBRCCalculator
     end_date = end_date - 1 if not AStockMarket.is_now_after_trading_time?
     begin_date = end_date - 30
     begin_date = stock.gbrc_base_date if stock.gbrc_base_date < begin_date
-    stock.extend_history!(begin_date, end_date)
+    extended = stock.extend_history!(begin_date, end_date)
+    return if !extended
     records = stock.history.get_records_by_range(stock.gbrc_base_date, end_date)
-    return if records.empty?
+    return if not records
     records.sort! { |a, b| b.adj_close <=> a.adj_close }
     base_record = stock.history.get_record_by_date(stock.gbrc_base_date)
     candidate_rec = records[0]

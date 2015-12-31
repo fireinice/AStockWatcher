@@ -81,6 +81,8 @@ if $0 == __FILE__
   require_relative "stock"
   code = "00001"
   market = "hk"
+  code = "000001"
+  market = "sz"
   Stock.interface = QQTradingDay
   stock = Stock.new(code, market)
   stock.update_trading!()

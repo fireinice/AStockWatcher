@@ -22,6 +22,7 @@ class HKStocksList < MongoInterface
     @@client[:wiki_hk_stocks_list].find().each do |item|
       codes |= item["codes"]
     end
+    codes.sort!
     codes
   end
 end

@@ -132,7 +132,7 @@ class SinaTradingDay < WebInterface
                   "卖四量", "卖四", "卖五量", "卖五", "日期", "时间"]
   @@inter_name_hk = %w(英文名 中文名 今开 昨收 最高价 最低价 报价 涨跌 振幅 竞买 竞卖 成交金额 成交量 市盈率 周息 年高点 年低点 日期 时间)
   @@inter_keys_hk = %i(name_e name t_open y_close high low deal change change_ratio buy sell turnover vol pe wir year_high year_low date time)
-  @@inter_keys = %i( name t_open y_close deal high low buy sell vol turnover buy_vol1 buy1 buy_vol2 buy2 buy_vol3 buy3 buy_vol4 buy4 buy_vol5 buy5 sell_vol1 sell1 sell_vol2 sell2 sell_vol3 sell3 sell_vol4 sell4 sell_vol5 sell5 date time )
+  @@inter_keys = %i( name t_open y_close deal high low buy sell vol turnover buy_vol1 buy1 buy_vol2 buy2 buy_vol3 buy3 buy_vol4 buy4 buy_vol5 buy5 sell_vol1 sell1 sell_vol2 sell2 sell_vol3 sell3 sell_vol4 sell4 sell_vol5 sell5 date time na)
   # http://hq.sinajs.cn/list=sz002238,sz000033
 
   @@hk_realtime_prefix = "rt_"
@@ -147,13 +147,6 @@ class SinaTradingDay < WebInterface
     url = @@base_url + stock_infos.join(",")
   end
 
-  def self.fetch_data(stock_list)
-    url = self.get_url(stock_list)
-    # remote_data = @fetchAgent.get_file(url)
-    remote_data = self.fetch_data(url)
-    remote_data = @@decoder.iconv(remote_data)
-  end
-
   def self.get_status(stock)
     stock_list = [stock]
     infos = self.get_status_batch(stock_list)
@@ -161,7 +154,9 @@ class SinaTradingDay < WebInterface
   end
 
   def self.get_status_batch(stock_list)
-    remote_data = self.fetch_data(stock_list)
+    url = self.get_url(stock_list)
+    remote_data = self.fetch_data(url)
+    remote_data = @@decoder.iconv(remote_data)
     infos = self.parse_data(remote_data)
   end
 
@@ -195,8 +190,10 @@ end
 
 if $0 == __FILE__
   require_relative "stock"
-  code = "00001"
-  market = "hk"
+  # code = "00001"
+  # market = "hk"
+  code = "000001"
+  market = "sz"
   stock = Stock.new(code, market)
   stock.update_trading!()
   puts stock.deal

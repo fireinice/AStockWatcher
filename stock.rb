@@ -91,6 +91,7 @@ class StockHistory
 
   def get_records_by_range(begin_date, end_date)
     extend_history!(begin_date, end_date) if not @stock.nil?
+    return nil if not @records
     @records.values.select{ |record| record.date <= end_date and record.date >= begin_date }
   end
 
@@ -156,7 +157,7 @@ class Stock
     if code.nil? or (code.size < 5 or code.size > 6)
       raise ArgumentError, "Bad data"
     end
-    code, market = Stock.parse_code(code) if market.nil?
+    market, code = Stock.parse_code(code) if market.nil?
     @code = code
     @market = market
     @history = nil
@@ -175,7 +176,7 @@ class Stock
     else
       mkt = "sz"
     end
-    return code, mkt
+    return mkt, code
   end
 
   attr_reader :code, :market, :buy_price, :buy_quantity, :costing,

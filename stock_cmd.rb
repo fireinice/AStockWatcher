@@ -424,7 +424,7 @@ if $0 == __FILE__
       end
 
       opts.on("-b", "--buy-stock [CODE],[BUY_PRICE],[BUY_QUANTITY]", Array, "Add a stock") do |s|
-        code, market = Stock.parse_code(s[0])
+        market, code = Stock.parse_code(s[0])
         #stock = cfg_file.getStock(market, code)
         v = []
         v<< s[1].to_f
