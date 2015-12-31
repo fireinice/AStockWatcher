@@ -101,7 +101,8 @@ class YahooHistory < StockHistoryBase
   @@base_url = "http://table.finance.yahoo.com/table.csv"
 end
 
-class TradingDay < WebInterface
+# coding: utf-8
+class TradingDayAbstract < WebInterface
   @@decoder = Iconv.new("UTF-8//IGNORE", "GBK//IGNORE")
   @@base_url = nil
   @@inter_name = nil
@@ -109,38 +110,13 @@ class TradingDay < WebInterface
   @@inter_keys_hk = nil
   @@inter_keys = nil
   @@hk_realtime_prefix = nil
+  @@info_separator = nil
 
   def self.get_url(stock_list)
     stock_infos = []
     stock_list.each do |stock|
       str = ""
-      str += @@hk_realtime_prefix if "hk" == stock.market
-      str += stock.market + stock.code
-      stock_infos << str
-    end
-    url = @@base_url + stock_infos.join(",")
-  end
-
-end
-
-class SinaTradingDay < WebInterface
-  @@decoder = Iconv.new("UTF-8//IGNORE", "GBK//IGNORE")
-  @@base_url = "http://hq.sinajs.cn/list="
-  @@inter_name = ["股票名", "今开", "昨收", "报价", "最高价", "最低价", "竞买", "竞卖", "成交量",
-                  "成交金额", "买一量", "买一", "买二量", "买二", "买三量", "买三", "买四量", "买四",
-                  "买五量", "买五", "卖一量", "卖一", "卖二量", "卖二", "卖三量", "卖三",
-                  "卖四量", "卖四", "卖五量", "卖五", "日期", "时间"]
-  @@inter_name_hk = %w(英文名 中文名 今开 昨收 最高价 最低价 报价 涨跌 振幅 竞买 竞卖 成交金额 成交量 市盈率 周息 年高点 年低点 日期 时间)
-  @@inter_keys_hk = %i(name_e name t_open y_close high low deal change change_ratio buy sell turnover vol pe wir year_high year_low date time)
-  @@inter_keys = %i( name t_open y_close deal high low buy sell vol turnover buy_vol1 buy1 buy_vol2 buy2 buy_vol3 buy3 buy_vol4 buy4 buy_vol5 buy5 sell_vol1 sell1 sell_vol2 sell2 sell_vol3 sell3 sell_vol4 sell4 sell_vol5 sell5 date time na)
-  # http://hq.sinajs.cn/list=sz002238,sz000033
-
-  @@hk_realtime_prefix = "rt_"
-  def self.get_url(stock_list)
-    stock_infos = []
-    stock_list.each do |stock|
-      str = ""
-      str = "rt_" if "hk" == stock.market
+      str = @@hk_realtime_prefix if "hk" == stock.market
       str += stock.market + stock.code
       stock_infos << str
     end
@@ -154,10 +130,19 @@ class SinaTradingDay < WebInterface
   end
 
   def self.get_status_batch(stock_list)
-    url = self.get_url(stock_list)
-    remote_data = self.fetch_data(url)
-    remote_data = @@decoder.iconv(remote_data)
-    infos = self.parse_data(remote_data)
+    start = 0
+    limit = 30
+    infos = {}
+    (0..stock_list.size + limit).step(limit) do |n|
+      url = get_url(stock_list[start..n])
+      remote_data = self.fetch_data(url)
+      remote_data = @@decoder.iconv(remote_data)
+      next if remote_data.nil?
+      infos.merge!(self.parse_data(remote_data))
+      start = n + 1
+      break if start >= stock_list.size
+    end
+    infos
   end
 
   def self.update_stocks_batch(stock_list)
@@ -166,20 +151,18 @@ class SinaTradingDay < WebInterface
 
   def self.parse_data(rdata)
     info_hash = {}
-    rdata.split("\n").each do |data_line|
-      data_list = data_line.split("=")
-      market = data_list[0][/sz|sh|hk/]
-      code = data_list[0][/\d+/]
-      info_str = data_list[1].delete("\";")
-      infos = info_str.split(",")
+    rdata.each_line do |data_line|
+      ref, info = data_line.split('=')
+      market = ref[/sz|sh|hk/]
+      code = ref[/\d+/]
+      info_str = info.delete("\";")
+      infos = info_str.split(@@info_separator)
       stock_info = {}
       keys = @@inter_keys
       keys = @@inter_keys_hk if market == "hk"
       raise "data format not as expected" unless keys.size == infos.size
       infos.each_index do |i|
         v = infos[i]
-        # v = v[0..-3] if @@inter_keys[i].to_s.include?("vol")
-        # v = v[0..-5] if
         stock_info[keys[i]] = v
       end
       info_hash[code] = stock_info
@@ -188,12 +171,28 @@ class SinaTradingDay < WebInterface
   end
 end
 
+class SinaTradingDay < TradingDayAbstract
+  @@decoder = Iconv.new("UTF-8//IGNORE", "GBK//IGNORE")
+  @@base_url = "http://hq.sinajs.cn/list="
+  @@inter_name = ["股票名", "今开", "昨收", "报价", "最高价", "最低价", "竞买", "竞卖", "成交量",
+                  "成交金额", "买一量", "买一", "买二量", "买二", "买三量", "买三", "买四量", "买四",
+                  "买五量", "买五", "卖一量", "卖一", "卖二量", "卖二", "卖三量", "卖三",
+                  "卖四量", "卖四", "卖五量", "卖五", "日期", "时间"]
+  @@inter_name_hk = %w(英文名 中文名 今开 昨收 最高价 最低价 报价 涨跌 振幅 竞买 竞卖 成交金额 成交量 市盈率 周息 年高点 年低点 日期 时间)
+  @@inter_keys_hk = %i(name_e name t_open y_close high low deal change change_ratio buy sell turnover vol pe wir year_high year_low date time)
+  @@inter_keys = %i( name t_open y_close deal high low buy sell vol turnover buy_vol1 buy1 buy_vol2 buy2 buy_vol3 buy3 buy_vol4 buy4 buy_vol5 buy5 sell_vol1 sell1 sell_vol2 sell2 sell_vol3 sell3 sell_vol4 sell4 sell_vol5 sell5 date time na)
+  # http://hq.sinajs.cn/list=sz002238,sz000033
+
+  @@hk_realtime_prefix = "rt_"
+  @@info_separator = ","
+end
+
 if $0 == __FILE__
   require_relative "stock"
-  # code = "00001"
-  # market = "hk"
-  code = "000001"
-  market = "sz"
+  code = "00001"
+  market = "hk"
+  # code = "000001"
+  # market = "sz"
   stock = Stock.new(code, market)
   stock.update_trading!()
   puts stock.deal

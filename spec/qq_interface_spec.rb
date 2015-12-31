@@ -34,4 +34,17 @@ describe  do
       expect(v).to eq sina[k] if sina.has_key? k
     end
   end
+
+  it "should be the same of the hk data from sina" do
+    s = Stock.new("600000")
+    qq = QQTradingDay.get_status(s)
+    sina = SinaTradingDay.get_status(s)
+    qq.each do |k,v|
+      #以下几个有量级的差别！
+      next if k.to_s.include?("vol")
+      next if :turnover == k
+      expect(v).to eq sina[k] if sina.has_key? k
+    end
+  end
+
 end
