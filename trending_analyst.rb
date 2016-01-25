@@ -43,7 +43,7 @@ def filter_by_deal_diff(stocks, infos, accept_ratio)
     pressure_lines = value[1]
     stock = stocks[ref]
     break if stock.nil?
-    next if stock.deal.nil? # skip stop trading stock
+    next if stock.stop?
     stock.trending_type = :exp
     s_lines = []
     p_lines = []

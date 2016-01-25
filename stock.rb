@@ -220,10 +220,15 @@ class Stock
     self.update_day_trading_info!(info)
   end
 
+  def stop?
+    (@deal.nil? or 'S' == @stop) #qq trading
+  end
+
   def update_day_trading_info!(day_trading_hash)
     return self if day_trading_hash.nil?
     @name = day_trading_hash[:name]
     @deal = day_trading_hash[:deal].to_f
+    @stop = day_trading_hash[:stop]
     @deal = nil if @deal < 0.01
     @y_close = day_trading_hash[:y_close].to_f
     @y_close = nil if @y_close < 0.01
