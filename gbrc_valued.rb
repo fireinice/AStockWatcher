@@ -4,9 +4,11 @@
 require "optparse"
 require_relative "cfg_controller"
 require_relative "gbrc_calculator"
+require_relative "user"
 require_relative "alert"
 
 if $0 == __FILE__
+  global_cfg = CFGController.new("stock.yml")
   cfg_file = CFGController.new("valued_stock.yml")
   opts = nil
   begin
@@ -25,10 +27,11 @@ if $0 == __FILE__
       end
     end.parse!
   end
-  all_stocks = cfg_file.getAllStocks
+  alert_manager = AlertManager.new
+  user = User.new(global_cfg.cfg["User"]["phone"])
   alert_manager.update_stocks_alert(user, cfg_file.getAllStocks)
+  all_stocks = cfg_file.getAllStocks
   all_stocks.each do |stock|
-    stock.update_day_trading_info!(infos[stock.code])
     alert_manager.check_alert(stock)
   end
 end
