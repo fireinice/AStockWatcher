@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 #
 require "optparse"
-require_relative "stock_cmd"
+require_relative "cfg_controller"
+require_relative "alert"
 
 if $0 == __FILE__
   cfg_file = CFGController.new("valued_stock.yml")
