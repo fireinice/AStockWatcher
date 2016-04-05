@@ -101,6 +101,11 @@ class AlertManager
         gbrc_alert = Alert.new(user, stock, stock.gbrc_line, AlertType::Dynamic, desc)
         add_alert(gbrc_alert)
       end
+      if stock.class.method_defined?(:gbrc_buy_line) and stock.gbrc_buy_line
+        desc = "顾比买入线"
+        gbrc_alert = Alert.new(user, stock, stock.gbrc_line, AlertType::Dynamic, desc)
+        add_alert(gbrc_alert)
+      end
       if stock.class.method_defined?(:trending_line) and stock.trending_line
         desc = "支撑线"
         trending_alert = Alert.new(user, stock, stock.trending_price,
