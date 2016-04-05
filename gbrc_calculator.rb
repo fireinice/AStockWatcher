@@ -60,11 +60,12 @@ class GBRCCalculator
     begin_date = end_date - init_gap
     success = stock.extend_history!(begin_date, end_date)
     return 0 if success.nil?
-    sort_prop = :adj_close
+    sort_prop = :adj_high
+    sort_prop = :adj_low if :low == start
     search_prop = :adj_low
     search_prop = :adj_high if :low == start
     records = stock.history.get_records_by_range(begin_date, end_date)
-    records.sort! { |a, b| b.adj_close <=> a.adj_close }
+    records.sort! { |a, b| b.send(sort_prop) <=> a.send(sort_prop) }
     peak = (start == :high ? records[0] : records[-1])
     loop_cnt = 0
     max_loop_cnt = 10
