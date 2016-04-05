@@ -36,24 +36,24 @@ end
 
 class AlertManager
   @@interface = SinaTradingDay
-  @@yml_filename = "alert.yml"
   @@logger = Logger.new("alert.log")
   @@logger.level = Logger::INFO
 
 
   def self.load_alerts(alerts_yml)
-    @@yml_filename = alerts_yml
-    return YAML.load(File.open(@@yml_filename))
+    @yml_filename = alerts_yml
+    return YAML.load(File.open(@yml_filename))
   end
 
   def dump_alerts()
-    File.open( @@yml_filename, 'w' ) do |out|
+    File.open( @yml_filename, 'w' ) do |out|
       YAML.dump(self, out)
     end
   end
 
-  def initialize()
+  def initialize(yml_filename="alert.yml")
     # alerts = {stock_ref1#direction:[], stock_ref2#direction:[]}
+    @yml_filename = yml_filename
     @alerts = {}
     @freeze_time = {}
     @freeze_gap = 2 * 60 # 2 mins
@@ -99,11 +99,13 @@ class AlertManager
       if stock.class.method_defined?(:gbrc_line) and stock.gbrc_line
         desc = "顾比线"
         gbrc_alert = Alert.new(user, stock, stock.gbrc_line, AlertType::Dynamic, desc)
+        gbrc_alert.direction = AlertDirection::Fell
         add_alert(gbrc_alert)
       end
       if stock.class.method_defined?(:gbrc_buy_line) and stock.gbrc_buy_line
         desc = "顾比买入线"
-        gbrc_alert = Alert.new(user, stock, stock.gbrc_line, AlertType::Dynamic, desc)
+        gbrc_alert = Alert.new(user, stock, stock.gbrc_buy_line, AlertType::Dynamic, desc)
+        gbrc_alert.direction = AlertDirection::Rose
         add_alert(gbrc_alert)
       end
       if stock.class.method_defined?(:trending_line) and stock.trending_line
@@ -124,7 +126,7 @@ class AlertManager
   end
 
   def trigger_alert(stock, alert)
-    return if not AStockMarket.is_now_in_trading_time?
+    #return if not AStockMarket.is_now_in_trading_time?
     return if alert_freeze?(stock, alert)
     if alert.direction == AlertDirection::Rose
       act = "突破"
@@ -135,6 +137,8 @@ class AlertManager
     content += "顾比#{stock.gbrc_line.round(2)}," if stock.respond_to?(:gbrc_line) and stock.gbrc_line
     if stock.respond_to?(:trending_line) and stock.trending_line
       content += "支撑#{stock.trending_price},压力#{ (stock.pressure_price)},通道#{(stock.channel_price)},"
+    elsif stock.respond_to?(:gbrc_buy_line) and stock.gbrc_buy_line
+      content += "顾比买入#{stock.gbrc_buy_line.round(2)},"
     end
     content += Time.now.strftime('%R')
 

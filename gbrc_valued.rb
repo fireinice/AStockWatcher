@@ -27,7 +27,7 @@ if $0 == __FILE__
       end
     end.parse!
   end
-  alert_manager = AlertManager.new
+  alert_manager = AlertManager.new("valued_alert.yml")
   user = User.new(global_cfg.cfg["User"]["phone"])
   alert_manager.update_stocks_alert(user, cfg_file.getAllStocks)
   all_stocks = cfg_file.getAllStocks
