@@ -82,7 +82,8 @@ class GBRCCalculator
           peak = record
           break
         end
-        if record.k_col.cover?(line)
+        if ((start == :high and record.send(search_prop) < line) or
+            (start == :low and  record.send(search_prop) > line))
           reverse_cnt -= 1
           line = record.send(search_prop)
           return line,peak.date if reverse_cnt == 0

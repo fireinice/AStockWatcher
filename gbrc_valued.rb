@@ -3,6 +3,7 @@
 #
 require "optparse"
 require_relative "cfg_controller"
+require_relative "gbrc_calculator"
 require_relative "alert"
 
 if $0 == __FILE__
