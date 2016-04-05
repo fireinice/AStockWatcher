@@ -16,19 +16,23 @@ def sort_by_points(infos)
       s_lines << s
     end
   end
-  s_lines.sort!{ |x,y| y.score.points <=> x.score.points }
-  ret_infos = {}
+  s_lines.sort!{ |x,y| [y.score.points, y.score.score] <=> [x.score.points, x.score.score] }
+  ret_infos = []
+  info_keys = {}
   s_lines.each do |l|
-    next if ret_infos.has_key?(l)
-    ret_infos[line_infos[l]] = infos[line_infos[l]]
+    ref = line_infos[l]
+    next if info_keys.has_key?(ref)
+    ret_infos.push([ref, infos[ref]])
+    info_keys[ref] = true
   end
   ret_infos
 end
 
 def formatted_print(stocks, infos)
-  infos.each do |ref, value|
-    support_lines = value[0]
-    pressure_lines = value[1]
+  infos.each do |value|
+    ref = value[0]
+    support_lines = value[1][0]
+    pressure_lines = value[1][1]
     stock = stocks[ref]
     CalcTrendingHelper.print_stock_lines_info(
       stock, support_lines, pressure_lines)

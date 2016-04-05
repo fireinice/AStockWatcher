@@ -18,6 +18,19 @@ class StockRecord
   attr_reader :date, :open, :close, :high, :low, :vol, :ratio,
               :adj_close, :adj_open, :adj_high, :adj_low
 
+  def k_col
+    c = [@adj_open, @adj_close]
+    (c.min...c.max)
+  end
+
+  def is_up?
+    @adj_close > @adj_open
+  end
+
+  def k_line
+    (@adj_low...@adj_high)
+  end
+
   def close=(nclose)
     @close = nclose
     @ratio = (@close-@open)/@open

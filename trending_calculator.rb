@@ -444,7 +444,7 @@ class CalcTrendingHelper
     return if s_line.nil?
     base_price = stock.deal.nil? ? stock.y_close : stock.deal
     return if base_price.nil?
-    puts "停牌" if stock.deal.nil?
+    puts "停牌" if stock.stop?
     sscore = s_line.score
     sd1 = s_line.index_date
     sd2 = s_line.v_date
@@ -496,7 +496,10 @@ class CalcTrendingHelper
 
   def self.print_stock_lines_info(stock, support_lines, pressure_lines)
     puts "============"
-    puts "#{stock.name}, #{stock.code}"
+    print "#{stock.name}, #{stock.code}"
+    print ", PB:#{stock.pb}" if not stock.pb.nil?
+    print ", PE:#{stock.pe}" if not stock.pe.nil?
+    puts ""
     for sector in %w(@industry @concept @qq_sectors)
       if stock.instance_variable_defined?(sector)
         items = stock.instance_variable_get(sector)

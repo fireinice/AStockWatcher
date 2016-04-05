@@ -78,7 +78,7 @@ class StockHistory
       begin_date < @dates[0] ? need_extend = true : begin_date = @dates[0]
       end_date > @dates[-1] ? need_extend = true : end_date = @dates[-1]
     end
-    return if not need_extend
+    return false if not need_extend
     records_list = @@interface.get_status(@stock, begin_date, end_date)
     return nil if records_list.nil?
     @records = {}
@@ -87,6 +87,7 @@ class StockHistory
     @dates.sort!
     @start_date = begin_date
     @end_date = end_date
+    return true
   end
 
   def get_records_by_range(begin_date, end_date)
@@ -238,8 +239,8 @@ class Stock
       @t_date_str = day_trading_hash[:date]
       @t_date = Date.parse(@t_date_str)
     end
-    @pb = day_trading_hash[:pb] if not day_trading_hash[:pb].nil?
-    @pe = day_trading_hash[:pe] if not day_trading_hash[:pe].nil?
+    @pb = day_trading_hash[:pb]
+    @pe = day_trading_hash[:pe]
     self
   end
 
