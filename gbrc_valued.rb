@@ -21,9 +21,16 @@ if $0 == __FILE__
         market = v[0]
         code = v[1]
         stock = cfg_file.getStock(market, code)
-        GBRCCalculator.analyze(stock, :both, 7)
+        GBRCCalculator.analyze(stock, :both,7)
         cfg_file.updateStock(stock)
         exit(0)
+      end
+      opts.on("-u", "--update", "update all stock infos") do 
+        cfg_file.getAllStocks.each do |stock|
+          GBRCCalculator.analyze(stock, :both, 7)
+          cfg_file.updateStock(stock)
+          exit(0)
+        end
       end
     end.parse!
   end
